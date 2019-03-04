@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -187,8 +187,8 @@ void EditorSubScene::move(Node *p_new_parent, Node *p_new_owner) {
 		}
 
 		p_new_parent->add_child(selnode);
-		for (List<Node *>::Element *E = to_reown.front(); E; E = E->next()) {
-			E->get()->set_owner(p_new_owner);
+		for (List<Node *>::Element *F = to_reown.front(); F; F = F->next()) {
+			F->get()->set_owner(p_new_owner);
 		}
 	}
 	if (!is_root) {

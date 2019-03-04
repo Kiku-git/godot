@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -207,7 +207,6 @@ private:
 		HashMap<StringName, Ref<Font> > font_override;
 		HashMap<StringName, Color> color_override;
 		HashMap<StringName, int> constant_override;
-		Map<Ref<Font>, int> font_refcount;
 
 	} data;
 
@@ -234,9 +233,7 @@ private:
 	void _size_changed();
 	String _get_tooltip() const;
 
-	void _ref_font(Ref<Font> p_sc);
-	void _unref_font(Ref<Font> p_sc);
-	void _font_changed();
+	void _override_changed();
 
 	void _update_canvas_item_transform();
 

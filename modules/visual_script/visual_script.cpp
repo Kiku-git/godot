@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -981,6 +981,10 @@ bool VisualScript::is_tool() const {
 	return false;
 }
 
+bool VisualScript::is_valid() const {
+	return true; //always valid
+}
+
 ScriptLanguage *VisualScript::get_language() const {
 
 	return VisualScriptLanguage::singleton;
@@ -1161,9 +1165,9 @@ void VisualScript::_set_data(const Dictionary &p_data) {
 
 		Array nodes = func["nodes"];
 
-		for (int i = 0; i < nodes.size(); i += 3) {
+		for (int j = 0; j < nodes.size(); j += 3) {
 
-			add_node(name, nodes[i], nodes[i + 2], nodes[i + 1]);
+			add_node(name, nodes[j], nodes[j + 2], nodes[j + 1]);
 		}
 
 		Array sequence_connections = func["sequence_connections"];
@@ -2699,11 +2703,11 @@ VisualScriptLanguage::VisualScriptLanguage() {
 	_debug_parse_err_file = "";
 	_debug_call_stack_pos = 0;
 	int dmcs = GLOBAL_DEF("debug/settings/visual_script/max_call_stack", 1024);
+	ProjectSettings::get_singleton()->set_custom_property_info("debug/settings/visual_script/max_call_stack", PropertyInfo(Variant::INT, "debug/settings/visual_script/max_call_stack", PROPERTY_HINT_RANGE, "1024,4096,1,or_greater")); //minimum is 1024
+
 	if (ScriptDebugger::get_singleton()) {
 		//debugging enabled!
 		_debug_max_call_stack = dmcs;
-		if (_debug_max_call_stack < 1024)
-			_debug_max_call_stack = 1024;
 		_call_stack = memnew_arr(CallLevel, _debug_max_call_stack + 1);
 
 	} else {

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -346,14 +346,15 @@ String FileAccess::get_line() const {
 	return String::utf8(line.get_data());
 }
 
-Vector<String> FileAccess::get_csv_line(String delim) const {
+Vector<String> FileAccess::get_csv_line(const String &p_delim) const {
 
-	ERR_FAIL_COND_V(delim.length() != 1, Vector<String>());
+	ERR_FAIL_COND_V(p_delim.length() != 1, Vector<String>());
 
 	String l;
 	int qc = 0;
 	do {
-		ERR_FAIL_COND_V(eof_reached(), Vector<String>());
+		if (eof_reached())
+			break;
 
 		l += get_line() + "\n";
 		qc = 0;
@@ -376,7 +377,7 @@ Vector<String> FileAccess::get_csv_line(String delim) const {
 		CharType c = l[i];
 		CharType s[2] = { 0, 0 };
 
-		if (!in_quote && c == delim[0]) {
+		if (!in_quote && c == p_delim[0]) {
 			strings.push_back(current);
 			current = String();
 		} else if (c == '"') {
@@ -406,6 +407,23 @@ int FileAccess::get_buffer(uint8_t *p_dst, int p_length) const {
 		p_dst[i] = get_8();
 
 	return i;
+}
+
+String FileAccess::get_as_utf8_string() const {
+	PoolVector<uint8_t> sourcef;
+	int len = get_len();
+	sourcef.resize(len + 1);
+
+	PoolVector<uint8_t>::Write w = sourcef.write();
+	int r = get_buffer(w.ptr(), len);
+	ERR_FAIL_COND_V(r != len, String());
+	w[len] = 0;
+
+	String s;
+	if (s.parse_utf8((const char *)w.ptr())) {
+		return String();
+	}
+	return s;
 }
 
 void FileAccess::store_16(uint16_t p_dest) {
@@ -523,6 +541,28 @@ void FileAccess::store_line(const String &p_line) {
 
 	store_string(p_line);
 	store_8('\n');
+}
+
+void FileAccess::store_csv_line(const Vector<String> &p_values, const String &p_delim) {
+
+	ERR_FAIL_COND(p_delim.length() != 1);
+
+	String line = "";
+	int size = p_values.size();
+	for (int i = 0; i < size; ++i) {
+		String value = p_values[i];
+
+		if (value.find("\"") != -1 || value.find(p_delim) != -1 || value.find("\n") != -1) {
+			value = "\"" + value.replace("\"", "\"\"") + "\"";
+		}
+		if (i < size - 1) {
+			value += p_delim;
+		}
+
+		line += value;
+	}
+
+	store_line(line);
 }
 
 void FileAccess::store_buffer(const uint8_t *p_src, int p_length) {

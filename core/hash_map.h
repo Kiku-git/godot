@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -150,7 +150,7 @@ private:
 		if (new_hash_table_power == -1)
 			return;
 
-		Element **new_hash_table = memnew_arr(Element *, (1 << new_hash_table_power));
+		Element **new_hash_table = memnew_arr(Element *, ((uint64_t)1 << new_hash_table_power));
 		if (!new_hash_table) {
 
 			ERR_PRINT("Out of Memory");
@@ -230,7 +230,7 @@ private:
 		if (!p_t.hash_table || p_t.hash_table_power == 0)
 			return; /* not copying from empty table */
 
-		hash_table = memnew_arr(Element *, 1 << p_t.hash_table_power);
+		hash_table = memnew_arr(Element *, (uint64_t)1 << p_t.hash_table_power);
 		hash_table_power = p_t.hash_table_power;
 		elements = p_t.elements;
 

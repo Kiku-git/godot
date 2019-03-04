@@ -122,6 +122,7 @@ def configure(env):
     ## Link flags
 
     env.Append(LINKFLAGS=['-s', 'BINARYEN=1'])
+    env.Append(LINKFLAGS=['-s', 'BINARYEN_TRAP_MODE=\'clamp\''])
 
     # Allow increasing memory buffer size during runtime. This is efficient
     # when using WebAssembly (in comparison to asm.js) and works well for
@@ -135,7 +136,3 @@ def configure(env):
 
     # TODO: Reevaluate usage of this setting now that engine.js manages engine runtime.
     env.Append(LINKFLAGS=['-s', 'NO_EXIT_RUNTIME=1'])
-
-    # TODO: Move that to opus module's config.
-    if 'module_opus_enabled' in env and env['module_opus_enabled']:
-        env.opus_fixed_point = 'yes'

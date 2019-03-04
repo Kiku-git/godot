@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -98,7 +98,6 @@ static void _generate_contacts_edge_edge(const Vector3 *p_points_A, int p_point_
 
 	Vector3 c = rel_A.cross(rel_B).cross(rel_B);
 
-	//if ( Math::abs(rel_A.dot(c) )<_EDGE_IS_VALID_SUPPORT_TRESHOLD ) {
 	if (Math::abs(rel_A.dot(c)) < CMP_EPSILON) {
 
 		// should handle somehow..
@@ -822,9 +821,9 @@ static void _collision_box_capsule(const ShapeSW *p_a, const Transform &p_transf
 
 		// test edges of A
 
-		for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
 
-			Vector3 axis = point_axis.cross(p_transform_a.basis.get_axis(i)).cross(p_transform_a.basis.get_axis(i)).normalized();
+			Vector3 axis = point_axis.cross(p_transform_a.basis.get_axis(j)).cross(p_transform_a.basis.get_axis(j)).normalized();
 
 			if (!separator.test_axis(axis))
 				return;
@@ -1338,7 +1337,7 @@ static void _collision_convex_polygon_convex_polygon(const ShapeSW *p_a, const T
 					return;
 			}
 		}
-		//edge-vertex( hsell)
+		//edge-vertex (shell)
 
 		for (int i = 0; i < edge_count_A; i++) {
 
@@ -1439,7 +1438,7 @@ static void _collision_convex_polygon_face(const ShapeSW *p_a, const Transform &
 					return;
 			}
 		}
-		//edge-vertex( hsell)
+		//edge-vertex (shell)
 
 		for (int i = 0; i < edge_count; i++) {
 

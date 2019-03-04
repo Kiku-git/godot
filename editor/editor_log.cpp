@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -65,7 +65,6 @@ void EditorLog::_notification(int p_what) {
 	} else if (p_what == NOTIFICATION_THEME_CHANGED) {
 		Ref<DynamicFont> df_output_code = get_font("output_source", "EditorFonts");
 		if (df_output_code.is_valid()) {
-			df_output_code->set_size(int(EDITOR_DEF("run/output/font_size", 13)) * EDSCALE);
 			if (log != NULL) {
 				log->add_font_override("normal_font", get_font("output_source", "EditorFonts"));
 			}
@@ -132,7 +131,6 @@ void EditorLog::_bind_methods() {
 EditorLog::EditorLog() {
 
 	VBoxContainer *vb = this;
-	add_constant_override("separation", get_constant("separation", "VBoxContainer"));
 
 	HBoxContainer *hb = memnew(HBoxContainer);
 	vb->add_child(hb);
@@ -155,13 +153,15 @@ EditorLog::EditorLog() {
 	log->set_v_size_flags(SIZE_EXPAND_FILL);
 	log->set_h_size_flags(SIZE_EXPAND_FILL);
 	vb->add_child(log);
-	add_message(VERSION_FULL_NAME " (c) 2007-2018 Juan Linietsky, Ariel Manzur & Godot Contributors.");
+	add_message(VERSION_FULL_NAME " (c) 2007-2019 Juan Linietsky, Ariel Manzur & Godot Contributors.");
 
 	eh.errfunc = _error_handler;
 	eh.userdata = this;
 	add_error_handler(&eh);
 
 	current = Thread::get_caller_id();
+
+	add_constant_override("separation", get_constant("separation", "VBoxContainer"));
 
 	EditorNode::get_undo_redo()->set_commit_notify_callback(_undo_redo_cbk, this);
 }

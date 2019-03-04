@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -95,7 +95,9 @@ class GDMono {
 #endif
 
 	bool core_api_assembly_out_of_sync;
+#ifdef TOOLS_ENABLED
 	bool editor_api_assembly_out_of_sync;
+#endif
 
 	GDMonoAssembly *corlib_assembly;
 	GDMonoAssembly *core_api_assembly;
@@ -132,13 +134,11 @@ class GDMono {
 	Error _load_tools_domain();
 #endif
 
-#ifdef DEBUG_METHODS_ENABLED
 	uint64_t api_core_hash;
 #ifdef TOOLS_ENABLED
 	uint64_t api_editor_hash;
 #endif
 	void _initialize_and_check_api_hashes();
-#endif
 
 	GDMonoLog *gdmono_log;
 
@@ -146,15 +146,23 @@ class GDMono {
 	MonoRegInfo mono_reg_info;
 #endif
 
+	void add_mono_shared_libs_dir_to_path();
+
 protected:
 	static GDMono *singleton;
 
 public:
-#ifdef DEBUG_METHODS_ENABLED
-	uint64_t get_api_core_hash() { return api_core_hash; }
+	uint64_t get_api_core_hash() {
+		if (api_core_hash == 0)
+			api_core_hash = ClassDB::get_api_hash(ClassDB::API_CORE);
+		return api_core_hash;
+	}
 #ifdef TOOLS_ENABLED
-	uint64_t get_api_editor_hash() { return api_editor_hash; }
-#endif
+	uint64_t get_api_editor_hash() {
+		if (api_editor_hash == 0)
+			api_editor_hash = ClassDB::get_api_hash(ClassDB::API_EDITOR);
+		return api_editor_hash;
+	}
 #endif
 
 #ifdef TOOLS_ENABLED
@@ -193,14 +201,13 @@ public:
 
 	GDMonoClass *get_class(MonoClass *p_raw_class);
 
-#ifdef TOOLS_ENABLED
+#ifdef GD_MONO_HOT_RELOAD
 	Error reload_scripts_domain();
 #endif
 
 	bool load_assembly(const String &p_name, GDMonoAssembly **r_assembly, bool p_refonly = false);
 	bool load_assembly(const String &p_name, MonoAssemblyName *p_aname, GDMonoAssembly **r_assembly, bool p_refonly = false);
-	bool load_assembly_from(const String &p_name, const String &p_basedir, GDMonoAssembly **r_assembly, bool p_refonly = false);
-	bool load_assembly_from(const String &p_name, const String &p_basedir, MonoAssemblyName *p_aname, GDMonoAssembly **r_assembly, bool p_refonly = false);
+	bool load_assembly_from(const String &p_name, const String &p_path, GDMonoAssembly **r_assembly, bool p_refonly = false);
 
 	Error finalize_and_unload_domain(MonoDomain *p_domain);
 
@@ -266,12 +273,6 @@ class _GodotSharp : public Object {
 
 	List<NodePath *> np_delete_queue;
 	List<RID *> rid_delete_queue;
-
-	bool queue_empty;
-
-#ifndef NO_THREADS
-	Mutex *queue_mutex;
-#endif
 
 protected:
 	static _GodotSharp *singleton;

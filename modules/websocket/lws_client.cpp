@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -27,11 +27,13 @@
 /* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
+
 #ifndef JAVASCRIPT_ENABLED
 
 #include "lws_client.h"
 #include "core/io/ip.h"
 #include "core/io/stream_peer_ssl.h"
+#include "core/project_settings.h"
 #include "tls/mbedtls/wrapper/include/openssl/ssl.h"
 
 Error LWSClient::connect_to_host(String p_host, String p_path, uint16_t p_port, bool p_ssl, PoolVector<String> p_protocols) {
@@ -76,26 +78,11 @@ Error LWSClient::connect_to_host(String p_host, String p_path, uint16_t p_port, 
 		ERR_FAIL_V(FAILED);
 	}
 
-	char abuf[1024];
-	char hbuf[1024];
-	char pbuf[2048];
-	String addr_str = (String)addr;
-	strncpy(abuf, addr_str.ascii().get_data(), 1023);
-	abuf[1023] = '\0';
-	strncpy(hbuf, p_host.utf8().get_data(), 1023);
-	hbuf[1023] = '\0';
-	strncpy(pbuf, p_path.utf8().get_data(), 2047);
-	pbuf[2047] = '\0';
-
 	i.context = context;
 	if (p_protocols.size() > 0)
 		i.protocol = _lws_ref->lws_names;
 	else
 		i.protocol = NULL;
-	i.address = abuf;
-	i.host = hbuf;
-	i.path = pbuf;
-	i.port = p_port;
 
 	if (p_ssl) {
 		i.ssl_connection = LCCSCF_USE_SSL;
@@ -105,9 +92,23 @@ Error LWSClient::connect_to_host(String p_host, String p_path, uint16_t p_port, 
 		i.ssl_connection = 0;
 	}
 
+	// These CharStrings needs to survive till we call lws_client_connect_via_info
+	CharString addr_ch = ((String)addr).ascii();
+	CharString host_ch = p_host.utf8();
+	CharString path_ch = p_path.utf8();
+	i.address = addr_ch.get_data();
+	i.host = host_ch.get_data();
+	i.path = path_ch.get_data();
+	i.port = p_port;
+
 	lws_client_connect_via_info(&i);
+
 	return OK;
 };
+
+int LWSClient::get_max_packet_size() const {
+	return (1 << _out_buf_size) - PROTO_SIZE;
+}
 
 void LWSClient::poll() {
 
@@ -129,7 +130,7 @@ int LWSClient::_handle_cb(struct lws *wsi, enum lws_callback_reasons reason, voi
 		} break;
 
 		case LWS_CALLBACK_CLIENT_ESTABLISHED:
-			peer->set_wsi(wsi);
+			peer->set_wsi(wsi, _in_buf_size, _in_pkt_size, _out_buf_size, _out_pkt_size);
 			peer_data->peer_id = 0;
 			peer_data->force_close = false;
 			peer_data->clean_close = false;
@@ -143,9 +144,9 @@ int LWSClient::_handle_cb(struct lws *wsi, enum lws_callback_reasons reason, voi
 
 		case LWS_CALLBACK_WS_PEER_INITIATED_CLOSE: {
 			int code;
-			String reason = peer->get_close_reason(in, len, code);
+			String reason2 = peer->get_close_reason(in, len, code);
 			peer_data->clean_close = true;
-			_on_close_request(code, reason);
+			_on_close_request(code, reason2);
 			return 0;
 		}
 
@@ -212,6 +213,11 @@ uint16_t LWSClient::get_connected_port() const {
 };
 
 LWSClient::LWSClient() {
+	_in_buf_size = nearest_shift((int)GLOBAL_GET(WSC_IN_BUF) - 1) + 10;
+	_in_pkt_size = nearest_shift((int)GLOBAL_GET(WSC_IN_PKT) - 1);
+	_out_buf_size = nearest_shift((int)GLOBAL_GET(WSC_OUT_BUF) - 1) + 10;
+	_out_pkt_size = nearest_shift((int)GLOBAL_GET(WSC_OUT_PKT) - 1);
+
 	context = NULL;
 	_lws_ref = NULL;
 	_peer = Ref<LWSPeer>(memnew(LWSPeer));

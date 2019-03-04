@@ -78,6 +78,7 @@
 
 /* Build with support for ipv6 */
 /* #undef LWS_WITH_IPV6 */
+#define LWS_WITH_IPV6
 
 /* Build with support for UNIX domain socket */
 /* #undef LWS_WITH_UNIX_SOCK */
@@ -174,7 +175,7 @@
 #define LWS_HAVE_MALLOC_H
 #endif
 
-#if !defined(IPHONE_ENABLED) && !defined(OSX_ENABLED) && !defined(__HAIKU__)
+#if !defined(__APPLE__) && !defined(__HAIKU__)
 #define LWS_HAVE_PIPE2
 #endif
 

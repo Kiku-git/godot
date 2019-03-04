@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -115,6 +115,8 @@ T *_nullptr() {
 #ifndef ABS
 #define ABS(m_v) (((m_v) < 0) ? (-(m_v)) : (m_v))
 #endif
+
+#define ABSDIFF(x, y) (((x) < (y)) ? ((y) - (x)) : ((x) - (y)))
 
 #ifndef SGN
 #define SGN(m_v) (((m_v) < 0) ? (-1.0) : (+1.0))
@@ -303,6 +305,14 @@ struct _GlobalLock {
 #else
 #define likely(x) x
 #define unlikely(x) x
+#endif
+
+#if defined(__GNUC__)
+#define _PRINTF_FORMAT_ATTRIBUTE_2_0 __attribute__((format(printf, 2, 0)))
+#define _PRINTF_FORMAT_ATTRIBUTE_2_3 __attribute__((format(printf, 2, 3)))
+#else
+#define _PRINTF_FORMAT_ATTRIBUTE_2_0
+#define _PRINTF_FORMAT_ATTRIBUTE_2_3
 #endif
 
 #endif // TYPEDEFS_H

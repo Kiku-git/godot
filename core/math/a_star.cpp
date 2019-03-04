@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -97,11 +97,14 @@ void AStar::remove_point(int p_id) {
 
 	Point *p = points[p_id];
 
-	for (Set<Point *>::Element *E = p->neighbours.front(); E; E = E->next()) {
-
-		Segment s(p_id, E->get()->id);
-		segments.erase(s);
-		E->get()->neighbours.erase(p);
+	Map<int, Point *>::Element *PE = points.front();
+	while (PE) {
+		for (Set<Point *>::Element *E = PE->get()->neighbours.front(); E; E = E->next()) {
+			Segment s(p_id, E->get()->id);
+			segments.erase(s);
+			E->get()->neighbours.erase(p);
+		}
+		PE = PE->next();
 	}
 
 	memdelete(p);
@@ -260,8 +263,8 @@ bool AStar::_solve(Point *begin_point, Point *end_point) {
 		}
 		// Check open list
 
-		SelfList<Point> *least_cost_point = NULL;
-		real_t least_cost = 1e30;
+		SelfList<Point> *least_cost_point = open_list.first();
+		real_t least_cost = Math_INF;
 
 		// TODO: Cache previous results
 		for (SelfList<Point> *E = open_list.first(); E; E = E->next()) {
@@ -371,14 +374,14 @@ PoolVector<Vector3> AStar::get_point_path(int p_from_id, int p_to_id) {
 	{
 		PoolVector<Vector3>::Write w = path.write();
 
-		Point *p = end_point;
+		Point *p2 = end_point;
 		int idx = pc - 1;
-		while (p != begin_point) {
-			w[idx--] = p->pos;
-			p = p->prev_point;
+		while (p2 != begin_point) {
+			w[idx--] = p2->pos;
+			p2 = p2->prev_point;
 		}
 
-		w[0] = p->pos; // Assign first
+		w[0] = p2->pos; // Assign first
 	}
 
 	return path;

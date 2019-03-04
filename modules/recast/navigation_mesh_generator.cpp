@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -66,26 +66,26 @@ void NavigationMeshGenerator::_add_mesh(const Ref<Mesh> &p_mesh, const Transform
 			PoolVector<int> mesh_indices = a[Mesh::ARRAY_INDEX];
 			PoolVector<int>::Read ir = mesh_indices.read();
 
-			for (int i = 0; i < mesh_vertices.size(); i++) {
-				_add_vertex(p_xform.xform(vr[i]), p_verticies);
+			for (int j = 0; j < mesh_vertices.size(); j++) {
+				_add_vertex(p_xform.xform(vr[j]), p_verticies);
 			}
 
-			for (int i = 0; i < face_count; i++) {
+			for (int j = 0; j < face_count; j++) {
 				// CCW
-				p_indices.push_back(current_vertex_count + (ir[i * 3 + 0]));
-				p_indices.push_back(current_vertex_count + (ir[i * 3 + 2]));
-				p_indices.push_back(current_vertex_count + (ir[i * 3 + 1]));
+				p_indices.push_back(current_vertex_count + (ir[j * 3 + 0]));
+				p_indices.push_back(current_vertex_count + (ir[j * 3 + 2]));
+				p_indices.push_back(current_vertex_count + (ir[j * 3 + 1]));
 			}
 		} else {
 			face_count = mesh_vertices.size() / 3;
-			for (int i = 0; i < face_count; i++) {
-				_add_vertex(p_xform.xform(vr[i * 3 + 0]), p_verticies);
-				_add_vertex(p_xform.xform(vr[i * 3 + 2]), p_verticies);
-				_add_vertex(p_xform.xform(vr[i * 3 + 1]), p_verticies);
+			for (int j = 0; j < face_count; j++) {
+				_add_vertex(p_xform.xform(vr[j * 3 + 0]), p_verticies);
+				_add_vertex(p_xform.xform(vr[j * 3 + 2]), p_verticies);
+				_add_vertex(p_xform.xform(vr[j * 3 + 1]), p_verticies);
 
-				p_indices.push_back(current_vertex_count + (i * 3 + 0));
-				p_indices.push_back(current_vertex_count + (i * 3 + 1));
-				p_indices.push_back(current_vertex_count + (i * 3 + 2));
+				p_indices.push_back(current_vertex_count + (j * 3 + 0));
+				p_indices.push_back(current_vertex_count + (j * 3 + 1));
+				p_indices.push_back(current_vertex_count + (j * 3 + 2));
 			}
 		}
 	}

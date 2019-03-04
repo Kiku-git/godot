@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -117,6 +117,7 @@ class InputDefault : public Input {
 	};
 
 	SpeedTrack mouse_speed_track;
+	Map<int, SpeedTrack> touch_speed_track;
 	Map<int, Joypad> joy_names;
 	int fallback_mapping;
 
@@ -182,6 +183,9 @@ private:
 
 	void _parse_input_event_impl(const Ref<InputEvent> &p_event, bool p_is_emulated);
 
+	List<Ref<InputEvent> > accumulated_events;
+	bool use_accumulated_input;
+
 public:
 	virtual bool is_key_pressed(int p_scancode) const;
 	virtual bool is_mouse_button_pressed(int p_button) const;
@@ -226,7 +230,7 @@ public:
 	void set_main_loop(MainLoop *p_main_loop);
 	void set_mouse_position(const Point2 &p_posf);
 
-	void action_press(const StringName &p_action);
+	void action_press(const StringName &p_action, float p_strength = 1.f);
 	void action_release(const StringName &p_action);
 
 	void iteration(float p_step);
@@ -263,6 +267,11 @@ public:
 	bool is_joy_mapped(int p_device);
 	String get_joy_guid_remapped(int p_device) const;
 	void set_fallback_mapping(String p_guid);
+
+	virtual void accumulate_input_event(const Ref<InputEvent> &p_event);
+	virtual void flush_accumulated_events();
+	virtual void set_use_accumulated_input(bool p_enable);
+
 	InputDefault();
 };
 

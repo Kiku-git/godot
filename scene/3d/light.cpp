@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -163,11 +163,6 @@ void Light::_update_visibility() {
 	if (!is_inside_tree())
 		return;
 
-	// FIXME: Since the call to VS::instance_light_set_enabled was disabled below,
-	// the whole logic became pointless so editor_ok triggers unused variable warnings.
-	// Commenting out for now but this should be fixed/reimplemented so that editor_only
-	// works as expected (GH-17989).
-	/*
 	bool editor_ok = true;
 
 #ifdef TOOLS_ENABLED
@@ -184,8 +179,8 @@ void Light::_update_visibility() {
 	}
 #endif
 
-	//VS::get_singleton()->instance_light_set_enabled(get_instance(),is_visible_in_tree() && editor_ok);
-	*/
+	VS::get_singleton()->instance_set_visible(get_instance(), is_visible_in_tree() && editor_ok);
+
 	_change_notify("geometry/visible");
 }
 
@@ -213,6 +208,13 @@ void Light::set_editor_only(bool p_editor_only) {
 bool Light::is_editor_only() const {
 
 	return editor_only;
+}
+
+void Light::_validate_property(PropertyInfo &property) const {
+
+	if (VisualServer::get_singleton()->is_low_end() && property.name == "shadow_contact") {
+		property.usage = PROPERTY_USAGE_NOEDITOR | PROPERTY_USAGE_INTERNAL;
+	}
 }
 
 void Light::_bind_methods() {

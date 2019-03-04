@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -155,9 +155,7 @@ struct _VariantCall {
 		funcdata.default_args = p_defaultarg;
 		funcdata._const = p_const;
 		funcdata.returns = p_has_return;
-#ifdef DEBUG_ENABLED
 		funcdata.return_type = p_return;
-#endif
 
 		if (p_argtype1.name) {
 			funcdata.arg_types.push_back(p_argtype1.type);
@@ -293,6 +291,7 @@ struct _VariantCall {
 	VCALL_LOCALMEM0R(String, is_valid_identifier);
 	VCALL_LOCALMEM0R(String, is_valid_integer);
 	VCALL_LOCALMEM0R(String, is_valid_float);
+	VCALL_LOCALMEM1R(String, is_valid_hex_number);
 	VCALL_LOCALMEM0R(String, is_valid_html_color);
 	VCALL_LOCALMEM0R(String, is_valid_ip_address);
 	VCALL_LOCALMEM0R(String, to_int);
@@ -481,11 +480,12 @@ struct _VariantCall {
 	VCALL_LOCALMEM0(Dictionary, clear);
 	VCALL_LOCALMEM1R(Dictionary, has);
 	VCALL_LOCALMEM1R(Dictionary, has_all);
-	VCALL_LOCALMEM1(Dictionary, erase);
+	VCALL_LOCALMEM1R(Dictionary, erase);
 	VCALL_LOCALMEM0R(Dictionary, hash);
 	VCALL_LOCALMEM0R(Dictionary, keys);
 	VCALL_LOCALMEM0R(Dictionary, values);
 	VCALL_LOCALMEM1R(Dictionary, duplicate);
+	VCALL_LOCALMEM2R(Dictionary, get);
 
 	VCALL_LOCALMEM2(Array, set);
 	VCALL_LOCALMEM1R(Array, get);
@@ -1227,15 +1227,15 @@ bool Variant::has_method(const StringName &p_method) const {
 #endif
 	}
 
-	const _VariantCall::TypeFunc &fd = _VariantCall::type_funcs[type];
-	return fd.functions.has(p_method);
+	const _VariantCall::TypeFunc &tf = _VariantCall::type_funcs[type];
+	return tf.functions.has(p_method);
 }
 
 Vector<Variant::Type> Variant::get_method_argument_types(Variant::Type p_type, const StringName &p_method) {
 
-	const _VariantCall::TypeFunc &fd = _VariantCall::type_funcs[p_type];
+	const _VariantCall::TypeFunc &tf = _VariantCall::type_funcs[p_type];
 
-	const Map<StringName, _VariantCall::FuncData>::Element *E = fd.functions.find(p_method);
+	const Map<StringName, _VariantCall::FuncData>::Element *E = tf.functions.find(p_method);
 	if (!E)
 		return Vector<Variant::Type>();
 
@@ -1244,9 +1244,9 @@ Vector<Variant::Type> Variant::get_method_argument_types(Variant::Type p_type, c
 
 bool Variant::is_method_const(Variant::Type p_type, const StringName &p_method) {
 
-	const _VariantCall::TypeFunc &fd = _VariantCall::type_funcs[p_type];
+	const _VariantCall::TypeFunc &tf = _VariantCall::type_funcs[p_type];
 
-	const Map<StringName, _VariantCall::FuncData>::Element *E = fd.functions.find(p_method);
+	const Map<StringName, _VariantCall::FuncData>::Element *E = tf.functions.find(p_method);
 	if (!E)
 		return false;
 
@@ -1255,9 +1255,9 @@ bool Variant::is_method_const(Variant::Type p_type, const StringName &p_method) 
 
 Vector<StringName> Variant::get_method_argument_names(Variant::Type p_type, const StringName &p_method) {
 
-	const _VariantCall::TypeFunc &fd = _VariantCall::type_funcs[p_type];
+	const _VariantCall::TypeFunc &tf = _VariantCall::type_funcs[p_type];
 
-	const Map<StringName, _VariantCall::FuncData>::Element *E = fd.functions.find(p_method);
+	const Map<StringName, _VariantCall::FuncData>::Element *E = tf.functions.find(p_method);
 	if (!E)
 		return Vector<StringName>();
 
@@ -1266,9 +1266,9 @@ Vector<StringName> Variant::get_method_argument_names(Variant::Type p_type, cons
 
 Variant::Type Variant::get_method_return_type(Variant::Type p_type, const StringName &p_method, bool *r_has_return) {
 
-	const _VariantCall::TypeFunc &fd = _VariantCall::type_funcs[p_type];
+	const _VariantCall::TypeFunc &tf = _VariantCall::type_funcs[p_type];
 
-	const Map<StringName, _VariantCall::FuncData>::Element *E = fd.functions.find(p_method);
+	const Map<StringName, _VariantCall::FuncData>::Element *E = tf.functions.find(p_method);
 	if (!E)
 		return Variant::NIL;
 
@@ -1280,9 +1280,9 @@ Variant::Type Variant::get_method_return_type(Variant::Type p_type, const String
 
 Vector<Variant> Variant::get_method_default_arguments(Variant::Type p_type, const StringName &p_method) {
 
-	const _VariantCall::TypeFunc &fd = _VariantCall::type_funcs[p_type];
+	const _VariantCall::TypeFunc &tf = _VariantCall::type_funcs[p_type];
 
-	const Map<StringName, _VariantCall::FuncData>::Element *E = fd.functions.find(p_method);
+	const Map<StringName, _VariantCall::FuncData>::Element *E = tf.functions.find(p_method);
 	if (!E)
 		return Vector<Variant>();
 
@@ -1291,9 +1291,9 @@ Vector<Variant> Variant::get_method_default_arguments(Variant::Type p_type, cons
 
 void Variant::get_method_list(List<MethodInfo> *p_list) const {
 
-	const _VariantCall::TypeFunc &fd = _VariantCall::type_funcs[type];
+	const _VariantCall::TypeFunc &tf = _VariantCall::type_funcs[type];
 
-	for (const Map<StringName, _VariantCall::FuncData>::Element *E = fd.functions.front(); E; E = E->next()) {
+	for (const Map<StringName, _VariantCall::FuncData>::Element *E = tf.functions.front(); E; E = E->next()) {
 
 		const _VariantCall::FuncData &fd = E->get();
 
@@ -1405,11 +1405,11 @@ Variant Variant::get_constant_value(Variant::Type p_type, const StringName &p_va
 
 	Map<StringName, int>::Element *E = cd.value.find(p_value);
 	if (!E) {
-		Map<StringName, Variant>::Element *E = cd.variant_value.find(p_value);
-		if (E) {
+		Map<StringName, Variant>::Element *F = cd.variant_value.find(p_value);
+		if (F) {
 			if (r_valid)
 				*r_valid = true;
-			return E->get();
+			return F->get();
 		} else {
 			return -1;
 		}
@@ -1535,6 +1535,7 @@ void register_variant_methods() {
 	ADDFUNC0R(STRING, BOOL, String, is_valid_identifier, varray());
 	ADDFUNC0R(STRING, BOOL, String, is_valid_integer, varray());
 	ADDFUNC0R(STRING, BOOL, String, is_valid_float, varray());
+	ADDFUNC1R(STRING, BOOL, String, is_valid_hex_number, BOOL, "with_prefix", varray(false));
 	ADDFUNC0R(STRING, BOOL, String, is_valid_html_color, varray());
 	ADDFUNC0R(STRING, BOOL, String, is_valid_ip_address, varray());
 	ADDFUNC0R(STRING, INT, String, to_int, varray());
@@ -1679,6 +1680,7 @@ void register_variant_methods() {
 	ADDFUNC0R(DICTIONARY, ARRAY, Dictionary, keys, varray());
 	ADDFUNC0R(DICTIONARY, ARRAY, Dictionary, values, varray());
 	ADDFUNC1R(DICTIONARY, DICTIONARY, Dictionary, duplicate, BOOL, "deep", varray(false));
+	ADDFUNC2R(DICTIONARY, NIL, Dictionary, get, NIL, "key", NIL, "default", varray(Variant()));
 
 	ADDFUNC0R(ARRAY, INT, Array, size, varray());
 	ADDFUNC0R(ARRAY, BOOL, Array, empty, varray());

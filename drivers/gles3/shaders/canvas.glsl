@@ -92,11 +92,6 @@ const bool at_light_pass = true;
 const bool at_light_pass = false;
 #endif
 
-#ifdef USE_PARTICLES
-uniform int h_frames;
-uniform int v_frames;
-#endif
-
 #if defined(USE_MATERIAL)
 
 /* clang-format off */
@@ -146,19 +141,12 @@ void main() {
 #ifdef USE_PARTICLES
 	//scale by texture size
 	outvec.xy /= color_texpixel_size;
-
-	//compute h and v frames and adjust UV interp for animation
-	int total_frames = h_frames * v_frames;
-	int frame = min(int(float(total_frames) * instance_custom.z), total_frames - 1);
-	float frame_w = 1.0 / float(h_frames);
-	float frame_h = 1.0 / float(v_frames);
-	uv_interp.x = uv_interp.x * frame_w + frame_w * float(frame % h_frames);
-	uv_interp.y = uv_interp.y * frame_h + frame_h * float(frame / h_frames);
-
 #endif
 
 #define extra_matrix extra_matrix_instance
 
+	//for compatibility with the fragment shader we need to use uv here
+	vec2 uv = uv_interp;
 	{
 		/* clang-format off */
 
@@ -166,6 +154,8 @@ VERTEX_SHADER_CODE
 
 		/* clang-format on */
 	}
+
+	uv_interp = uv;
 
 #ifdef USE_NINEPATCH
 
@@ -491,6 +481,7 @@ void main() {
 
 #if defined(NORMALMAP_USED)
 		vec3 normal_map = vec3(0.0, 0.0, 1.0);
+		normal_used = true;
 #endif
 
 		/* clang-format off */
@@ -504,7 +495,7 @@ FRAGMENT_SHADER_CODE
 #endif
 	}
 #ifdef DEBUG_ENCODED_32
-	highp float enc32 = dot(color, highp vec4(1.0 / (256.0 * 256.0 * 256.0), 1.0 / (256.0 * 256.0), 1.0 / 256.0, 1));
+	highp float enc32 = dot(color, highp vec4(1.0 / (256.0 * 256.0 * 256.0), 1.0 / (256.0 * 256.0), 1.0 / 256.0, 1.0));
 	color = vec4(vec3(enc32), 1.0);
 #endif
 
@@ -558,7 +549,10 @@ FRAGMENT_SHADER_CODE
 		color *= light;
 
 #ifdef USE_SHADOWS
-		light_vec = light_uv_interp.zw; //for shadows
+		// Reset light_vec to compute shadows, the shadow map is created from the light origin, so it only
+		// makes sense to compute shadows from there.
+		light_vec = light_uv_interp.zw;
+
 		float angle_to_light = -atan(light_vec.x, light_vec.y);
 		float PI = 3.14159265358979323846264;
 		/*int i = int(mod(floor((angle_to_light+7.0*PI/6.0)/(4.0*PI/6.0))+1.0, 3.0)); // +1 pq os indices estao em ordem 2,0,1 nos arrays
@@ -595,7 +589,7 @@ FRAGMENT_SHADER_CODE
 
 #ifdef USE_RGBA_SHADOWS
 
-#define SHADOW_DEPTH(m_tex, m_uv) dot(texture((m_tex), (m_uv)), vec4(1.0 / (256.0 * 256.0 * 256.0), 1.0 / (256.0 * 256.0), 1.0 / 256.0, 1))
+#define SHADOW_DEPTH(m_tex, m_uv) dot(texture((m_tex), (m_uv)), vec4(1.0 / (256.0 * 256.0 * 256.0), 1.0 / (256.0 * 256.0), 1.0 / 256.0, 1.0))
 
 #else
 

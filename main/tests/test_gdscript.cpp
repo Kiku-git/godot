@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -359,9 +359,6 @@ static void _parser_show_block(const GDScriptParser::BlockNode *p_block, int p_i
 					} break;
 					case GDScriptParser::ControlFlowNode::CF_MATCH: {
 						// FIXME: Implement
-					} break;
-					case GDScriptParser::ControlFlowNode::CF_SWITCH: {
-
 					} break;
 					case GDScriptParser::ControlFlowNode::CF_CONTINUE: {
 
@@ -911,11 +908,14 @@ MainLoop *test(TestType p_type) {
 	List<String> cmdlargs = OS::get_singleton()->get_cmdline_args();
 
 	if (cmdlargs.empty()) {
-		//try editor!
 		return NULL;
 	}
 
 	String test = cmdlargs.back()->get();
+	if (!test.ends_with(".gd") && !test.ends_with(".gdc")) {
+		print_line("This test expects a path to a GDScript file as its last parameter. Got: " + test);
+		return NULL;
+	}
 
 	FileAccess *fa = FileAccess::open(test, FileAccess::READ);
 
@@ -1041,10 +1041,10 @@ MainLoop *test(TestType p_type) {
 
 	} else if (p_type == TEST_BYTECODE) {
 
-		Vector<uint8_t> buf = GDScriptTokenizerBuffer::parse_code_string(code);
+		Vector<uint8_t> buf2 = GDScriptTokenizerBuffer::parse_code_string(code);
 		String dst = test.get_basename() + ".gdc";
 		FileAccess *fw = FileAccess::open(dst, FileAccess::WRITE);
-		fw->store_buffer(buf.ptr(), buf.size());
+		fw->store_buffer(buf2.ptr(), buf2.size());
 		memdelete(fw);
 	}
 

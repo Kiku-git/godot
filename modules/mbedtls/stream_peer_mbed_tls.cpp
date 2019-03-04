@@ -1,12 +1,12 @@
 /*************************************************************************/
-/*  stream_peer_openssl.cpp                                              */
+/*  stream_peer_mbed_tls.cpp                                             */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -270,7 +270,10 @@ void StreamPeerMbedTLS::poll() {
 		return;
 	}
 
-	int ret = mbedtls_ssl_read(&ssl, NULL, 0);
+	// We could pass NULL as second parameter, but some behaviour sanitizers doesn't seem to like that.
+	// Passing a 1 byte buffer to workaround it.
+	uint8_t byte;
+	int ret = mbedtls_ssl_read(&ssl, &byte, 0);
 
 	if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
 		// Nothing to read/write (non blocking IO)
@@ -313,7 +316,7 @@ void StreamPeerMbedTLS::disconnect_from_stream() {
 
 	Ref<StreamPeerTCP> tcp = base;
 	if (tcp.is_valid() && tcp->get_status() == StreamPeerTCP::STATUS_CONNECTED) {
-		// We are still connected on the socket, try to send close notity.
+		// We are still connected on the socket, try to send close notify.
 		mbedtls_ssl_close_notify(&ssl);
 	}
 

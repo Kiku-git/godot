@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -80,7 +80,7 @@ class SectionedInspectorFilter : public Object {
 			PropertyInfo pi = E->get();
 			int sp = pi.name.find("/");
 
-			if (pi.name == "resource_path" || pi.name == "resource_name" || pi.name == "resource_local_to_scene" || pi.name.begins_with("script/")) //skip resource stuff
+			if (pi.name == "resource_path" || pi.name == "resource_name" || pi.name == "resource_local_to_scene" || pi.name.begins_with("script/") || pi.name.begins_with("_global_script")) //skip resource stuff
 				continue;
 
 			if (sp == -1) {
@@ -233,7 +233,7 @@ void SectionedInspector::update_category_list() {
 		else if (!(pi.usage & PROPERTY_USAGE_EDITOR))
 			continue;
 
-		if (pi.name.find(":") != -1 || pi.name == "script" || pi.name == "resource_name" || pi.name == "resource_path" || pi.name == "resource_local_to_scene")
+		if (pi.name.find(":") != -1 || pi.name == "script" || pi.name == "resource_name" || pi.name == "resource_path" || pi.name == "resource_local_to_scene" || pi.name.begins_with("_global_script"))
 			continue;
 
 		if (search_box && search_box->get_text() != String() && pi.name.findn(search_box->get_text()) == -1)
@@ -241,7 +241,7 @@ void SectionedInspector::update_category_list() {
 
 		int sp = pi.name.find("/");
 		if (sp == -1)
-			pi.name = "Global/" + pi.name;
+			pi.name = "global/" + pi.name;
 
 		Vector<String> sectionarr = pi.name.split("/");
 		String metasection;
@@ -298,19 +298,18 @@ EditorInspector *SectionedInspector::get_inspector() {
 	return inspector;
 }
 
-SectionedInspector::SectionedInspector() {
-
-	obj = -1;
-
-	search_box = NULL;
-
+SectionedInspector::SectionedInspector() :
+		obj(-1),
+		sections(memnew(Tree)),
+		filter(memnew(SectionedInspectorFilter)),
+		inspector(memnew(EditorInspector)),
+		search_box(NULL) {
 	add_constant_override("autohide", 1); // Fixes the dragger always showing up
 
 	VBoxContainer *left_vb = memnew(VBoxContainer);
 	left_vb->set_custom_minimum_size(Size2(170, 0) * EDSCALE);
 	add_child(left_vb);
 
-	sections = memnew(Tree);
 	sections->set_v_size_flags(SIZE_EXPAND_FILL);
 	sections->set_hide_root(true);
 
@@ -321,8 +320,6 @@ SectionedInspector::SectionedInspector() {
 	right_vb->set_h_size_flags(SIZE_EXPAND_FILL);
 	add_child(right_vb);
 
-	filter = memnew(SectionedInspectorFilter);
-	inspector = memnew(EditorInspector);
 	inspector->set_v_size_flags(SIZE_EXPAND_FILL);
 	right_vb->add_child(inspector, true);
 	inspector->set_use_doc_hints(true);

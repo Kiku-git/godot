@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -286,7 +286,7 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	} else if (preset == "Solarized (Dark)") {
 		preset_accent_color = Color::html("#268bd2");
 		preset_base_color = Color::html("#073642");
-		preset_contrast = 0.15;
+		preset_contrast = 0.23;
 	} else if (preset == "Solarized (Light)") {
 		preset_accent_color = Color::html("#268bd2");
 		preset_base_color = Color::html("#fdf6e3");
@@ -351,18 +351,18 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 
 	theme->set_color("mono_color", "Editor", mono_color);
 
-	Color success_color = accent_color.linear_interpolate(Color(0.2, 1, 0.2), 0.6) * 1.2;
-	Color warning_color = accent_color.linear_interpolate(Color(1, 1, 0), 0.7) * 1.0;
-	Color error_color = accent_color.linear_interpolate(Color(1, 0, 0), 0.8) * 1.7;
+	Color success_color = Color(0.45, 0.95, 0.5);
+	Color warning_color = Color(1, 0.87, 0.4);
+	Color error_color = Color(1, 0.47, 0.42);
 	Color property_color = font_color.linear_interpolate(Color(0.5, 0.5, 0.5), 0.5);
 
 	if (!dark_theme) {
-		// yellow on white themes is a P.I.T.A.
-		warning_color = accent_color.linear_interpolate(Color(0.9, 0.7, 0), 0.9);
-		warning_color = warning_color.linear_interpolate(mono_color, 0.2);
-		success_color = success_color.linear_interpolate(mono_color, 0.2);
-		error_color = error_color.linear_interpolate(mono_color, 0.2);
+		// Darken some colors to be readable on a light background
+		success_color = success_color.linear_interpolate(mono_color, 0.35);
+		warning_color = warning_color.linear_interpolate(mono_color, 0.35);
+		error_color = error_color.linear_interpolate(mono_color, 0.25);
 	}
+
 	theme->set_color("success_color", "Editor", success_color);
 	theme->set_color("warning_color", "Editor", warning_color);
 	theme->set_color("error_color", "Editor", error_color);
@@ -480,6 +480,10 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	Ref<StyleBoxFlat> style_tab_unselected = style_tab_selected->duplicate();
 	style_tab_unselected->set_bg_color(dark_color_1);
 	style_tab_unselected->set_border_color_all(dark_color_2);
+
+	Ref<StyleBoxFlat> style_tab_disabled = style_tab_selected->duplicate();
+	style_tab_disabled->set_bg_color(color_disabled_bg);
+	style_tab_disabled->set_border_color_all(color_disabled);
 
 	// Editor background
 	theme->set_stylebox("Background", "EditorStyles", make_flat_stylebox(background_color, default_margin_size, default_margin_size, default_margin_size, default_margin_size));
@@ -742,8 +746,10 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	// Tabs & TabContainer
 	theme->set_stylebox("tab_fg", "TabContainer", style_tab_selected);
 	theme->set_stylebox("tab_bg", "TabContainer", style_tab_unselected);
+	theme->set_stylebox("tab_disabled", "TabContainer", style_tab_disabled);
 	theme->set_stylebox("tab_fg", "Tabs", style_tab_selected);
 	theme->set_stylebox("tab_bg", "Tabs", style_tab_unselected);
+	theme->set_stylebox("tab_disabled", "Tabs", style_tab_disabled);
 	theme->set_color("font_color_fg", "TabContainer", font_color);
 	theme->set_color("font_color_bg", "TabContainer", font_color_disabled);
 	theme->set_color("font_color_fg", "Tabs", font_color);
@@ -994,6 +1000,14 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	graphsbposition->set_draw_center(false);
 	graphsbposition->set_border_color_all(error_color);
 	graphsbposition->set_shadow_color(error_color * Color(1.0, 1.0, 1.0, 0.2));
+	Ref<StyleBoxFlat> smgraphsb = make_flat_stylebox(Color(mv, mv, mv, 0.7), gn_margin_side, 24, gn_margin_side, 5);
+	smgraphsb->set_border_width_all(border_width);
+	smgraphsb->set_border_color_all(Color(mv2, mv2, mv2, 0.9));
+	Ref<StyleBoxFlat> smgraphsbselected = make_flat_stylebox(Color(mv, mv, mv, 0.9), gn_margin_side, 24, gn_margin_side, 5);
+	smgraphsbselected->set_border_width_all(border_width);
+	smgraphsbselected->set_border_color_all(Color(accent_color.r, accent_color.g, accent_color.b, 0.9));
+	smgraphsbselected->set_shadow_size(8 * EDSCALE);
+	smgraphsbselected->set_shadow_color(shadow_color);
 
 	if (use_gn_headers) {
 		graphsb->set_border_width(MARGIN_TOP, 24 * EDSCALE);
@@ -1008,6 +1022,8 @@ Ref<Theme> create_editor_theme(const Ref<Theme> p_theme) {
 	theme->set_stylebox("commentfocus", "GraphNode", graphsbcommentselected);
 	theme->set_stylebox("breakpoint", "GraphNode", graphsbbreakpoint);
 	theme->set_stylebox("position", "GraphNode", graphsbposition);
+	theme->set_stylebox("state_machine_frame", "GraphNode", smgraphsb);
+	theme->set_stylebox("state_machine_selectedframe", "GraphNode", smgraphsbselected);
 
 	Color default_node_color = Color(mv2, mv2, mv2);
 	theme->set_color("title_color", "GraphNode", default_node_color);

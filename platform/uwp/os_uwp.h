@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -28,15 +28,15 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef OSUWP_H
-#define OSUWP_H
+#ifndef OS_UWP_H
+#define OS_UWP_H
 
+#include "context_egl_uwp.h"
 #include "core/math/transform_2d.h"
 #include "core/os/input.h"
 #include "core/os/os.h"
 #include "core/ustring.h"
 #include "drivers/xaudio2/audio_driver_xaudio2.h"
-#include "gl_context_egl.h"
 #include "joypad_uwp.h"
 #include "main/input_default.h"
 #include "power_uwp.h"
@@ -52,7 +52,7 @@
 /**
 	@author Juan Linietsky <reduzio@gmail.com>
 */
-class OSUWP : public OS {
+class OS_UWP : public OS {
 
 public:
 	struct KeyEvent {
@@ -95,7 +95,7 @@ private:
 	VisualServer *visual_server;
 	int pressrc;
 
-	ContextEGL *gl_context;
+	ContextEGL_UWP *gl_context;
 	Windows::UI::Core::CoreWindow ^ window;
 
 	VideoMode video_mode;
@@ -144,7 +144,7 @@ private:
 		/* clang-format off */
 	internal:
 		ManagedType() { alert_close_handle = false; }
-		property OSUWP* os;
+		property OS_UWP* os;
 		/* clang-format on */
 	};
 	ManagedType ^ managed_object;
@@ -213,6 +213,7 @@ public:
 
 	virtual bool has_environment(const String &p_var) const;
 	virtual String get_environment(const String &p_var) const;
+	virtual bool set_environment(const String &p_var, const String &p_value) const;
 
 	virtual void set_clipboard(const String &p_text);
 	virtual String get_clipboard() const;
@@ -261,8 +262,8 @@ public:
 
 	void queue_key_event(KeyEvent &p_event);
 
-	OSUWP();
-	~OSUWP();
+	OS_UWP();
+	~OS_UWP();
 };
 
 #endif

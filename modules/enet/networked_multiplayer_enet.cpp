@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -231,6 +231,13 @@ void NetworkedMultiplayerENet::poll() {
 					break;
 				}
 
+				// A client joined with an invalid ID (neagtive values, 0, and 1 are reserved).
+				// Probably trying to exploit us.
+				if (server && ((int)event.data < 2 || peer_map.has((int)event.data))) {
+					enet_peer_reset(event.peer);
+					ERR_CONTINUE(true);
+				}
+
 				int *new_id = memnew(int);
 				*new_id = event.data;
 
@@ -426,7 +433,6 @@ bool NetworkedMultiplayerENet::is_server() const {
 void NetworkedMultiplayerENet::close_connection(uint32_t wait_usec) {
 
 	ERR_FAIL_COND(!active);
-	ERR_FAIL_COND(wait_usec < 0);
 
 	_pop_current_packet();
 

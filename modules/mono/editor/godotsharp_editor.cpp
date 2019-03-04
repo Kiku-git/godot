@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -30,6 +30,7 @@
 
 #include "godotsharp_editor.h"
 
+#include "core/message_queue.h"
 #include "core/os/os.h"
 #include "core/project_settings.h"
 #include "scene/gui/control.h"
@@ -42,8 +43,8 @@
 #include "../utils/path_utils.h"
 #include "bindings_generator.h"
 #include "csharp_project.h"
+#include "dotnet_solution.h"
 #include "godotsharp_export.h"
-#include "net_solution.h"
 
 #ifdef OSX_ENABLED
 #include "../utils/osx_utils.h"
@@ -71,17 +72,21 @@ bool GodotSharpEditor::_create_project_solution() {
 
 	if (guid.length()) {
 
-		NETSolution solution(name);
+		DotNetSolution solution(name);
 
 		if (!solution.set_path(path)) {
 			show_error_dialog(TTR("Failed to create solution."));
 			return false;
 		}
 
-		Vector<String> extra_configs;
-		extra_configs.push_back("Tools");
+		DotNetSolution::ProjectInfo proj_info;
+		proj_info.guid = guid;
+		proj_info.relpath = name + ".csproj";
+		proj_info.configs.push_back("Debug");
+		proj_info.configs.push_back("Release");
+		proj_info.configs.push_back("Tools");
 
-		solution.add_new_project(name, guid, extra_configs);
+		solution.add_new_project(name, proj_info);
 
 		Error sln_error = solution.save();
 
@@ -90,10 +95,10 @@ bool GodotSharpEditor::_create_project_solution() {
 			return false;
 		}
 
-		if (!GodotSharpBuilds::make_api_sln(APIAssembly::API_CORE))
+		if (!GodotSharpBuilds::make_api_assembly(APIAssembly::API_CORE))
 			return false;
 
-		if (!GodotSharpBuilds::make_api_sln(APIAssembly::API_EDITOR))
+		if (!GodotSharpBuilds::make_api_assembly(APIAssembly::API_EDITOR))
 			return false;
 
 		pr.step(TTR("Done"));
@@ -108,12 +113,59 @@ bool GodotSharpEditor::_create_project_solution() {
 	return true;
 }
 
+void GodotSharpEditor::_make_api_solutions_if_needed() {
+	// I'm sick entirely of ProgressDialog
+
+	static int attempts_left = 100;
+
+	if (MessageQueue::get_singleton()->is_flushing() || !SceneTree::get_singleton()) {
+		ERR_FAIL_COND(attempts_left == 0); // You've got to be kidding
+
+		if (SceneTree::get_singleton()) {
+			SceneTree::get_singleton()->connect("idle_frame", this, "_make_api_solutions_if_needed", Vector<Variant>());
+		} else {
+			call_deferred("_make_api_solutions_if_needed");
+		}
+
+		attempts_left--;
+		return;
+	}
+
+	// Recursion guard needed because signals don't play well with ProgressDialog either, but unlike
+	// the message queue, with signals the collateral damage should be minimal in the worst case.
+	static bool recursion_guard = false;
+	if (!recursion_guard) {
+		recursion_guard = true;
+
+		// Oneshot signals don't play well with ProgressDialog either, so we do it this way instead
+		SceneTree::get_singleton()->disconnect("idle_frame", this, "_make_api_solutions_if_needed");
+
+		_make_api_solutions_if_needed_impl();
+
+		recursion_guard = false;
+	}
+}
+
+void GodotSharpEditor::_make_api_solutions_if_needed_impl() {
+	// If the project has a solution and C# project make sure the API assemblies are present and up to date
+	String res_assemblies_dir = GodotSharpDirs::get_res_assemblies_dir();
+
+	if (!FileAccess::exists(res_assemblies_dir.plus_file(CORE_API_ASSEMBLY_NAME ".dll")) ||
+			GDMono::get_singleton()->metadata_is_api_assembly_invalidated(APIAssembly::API_CORE)) {
+		if (!GodotSharpBuilds::make_api_assembly(APIAssembly::API_CORE))
+			return;
+	}
+
+	if (!FileAccess::exists(res_assemblies_dir.plus_file(EDITOR_API_ASSEMBLY_NAME ".dll")) ||
+			GDMono::get_singleton()->metadata_is_api_assembly_invalidated(APIAssembly::API_EDITOR)) {
+		if (!GodotSharpBuilds::make_api_assembly(APIAssembly::API_EDITOR))
+			return; // Redundant? I don't think so
+	}
+}
+
 void GodotSharpEditor::_remove_create_sln_menu_option() {
 
 	menu_popup->remove_item(menu_popup->get_item_index(MENU_CREATE_SLN));
-
-	if (menu_popup->get_item_count() == 0)
-		menu_button->hide();
 
 	bottom_panel_btn->show();
 }
@@ -169,6 +221,7 @@ void GodotSharpEditor::_notification(int p_notification) {
 void GodotSharpEditor::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("_create_project_solution"), &GodotSharpEditor::_create_project_solution);
+	ClassDB::bind_method(D_METHOD("_make_api_solutions_if_needed"), &GodotSharpEditor::_make_api_solutions_if_needed);
 	ClassDB::bind_method(D_METHOD("_remove_create_sln_menu_option"), &GodotSharpEditor::_remove_create_sln_menu_option);
 	ClassDB::bind_method(D_METHOD("_toggle_about_dialog_on_start"), &GodotSharpEditor::_toggle_about_dialog_on_start);
 	ClassDB::bind_method(D_METHOD("_menu_option_pressed", "id"), &GodotSharpEditor::_menu_option_pressed);
@@ -217,7 +270,29 @@ Error GodotSharpEditor::open_in_external_editor(const Ref<Script> &p_script, int
 
 			if (vscode_path.empty() || !FileAccess::exists(vscode_path)) {
 				// Try to search it again if it wasn't found last time or if it was removed from its location
-				vscode_path = path_which("code");
+				bool found = false;
+
+				// TODO: Use initializer lists once C++11 is allowed
+
+				static Vector<String> vscode_names;
+				if (vscode_names.empty()) {
+					vscode_names.push_back("code");
+					vscode_names.push_back("code-oss");
+					vscode_names.push_back("vscode");
+					vscode_names.push_back("vscode-oss");
+					vscode_names.push_back("visual-studio-code");
+					vscode_names.push_back("visual-studio-code-oss");
+				}
+				for (int i = 0; i < vscode_names.size(); i++) {
+					vscode_path = path_which(vscode_names[i]);
+					if (!vscode_path.empty()) {
+						found = true;
+						break;
+					}
+				}
+
+				if (!found)
+					vscode_path.clear(); // Not found, clear so next time the empty() check is enough
 			}
 
 			List<String> args;
@@ -335,9 +410,12 @@ GodotSharpEditor::GodotSharpEditor(EditorNode *p_editor) {
 
 	editor->add_child(memnew(MonoReloadNode));
 
-	menu_button = memnew(MenuButton);
-	menu_button->set_text(TTR("Mono"));
-	menu_popup = menu_button->get_popup();
+	menu_popup = memnew(PopupMenu);
+	menu_popup->hide();
+	menu_popup->set_as_toplevel(true);
+	menu_popup->set_pass_on_modal_close_click(false);
+
+	editor->add_tool_submenu_item("Mono", menu_popup);
 
 	// TODO: Remove or edit this info dialog once Mono support is no longer in alpha
 	{
@@ -390,23 +468,28 @@ GodotSharpEditor::GodotSharpEditor(EditorNode *p_editor) {
 	String sln_path = GodotSharpDirs::get_project_sln_path();
 	String csproj_path = GodotSharpDirs::get_project_csproj_path();
 
-	if (!FileAccess::exists(sln_path) || !FileAccess::exists(csproj_path)) {
+	if (FileAccess::exists(sln_path) && FileAccess::exists(csproj_path)) {
+		// Defer this task because EditorProgress calls Main::iterarion() and the main loop is not yet initialized.
+		call_deferred("_make_api_solutions_if_needed");
+	} else {
 		bottom_panel_btn->hide();
 		menu_popup->add_item(TTR("Create C# solution"), MENU_CREATE_SLN);
 	}
 
 	menu_popup->connect("id_pressed", this, "_menu_option_pressed");
 
-	if (menu_popup->get_item_count() == 0)
-		menu_button->hide();
-
-	editor->get_menu_hb()->add_child(menu_button);
+	ToolButton *build_button = memnew(ToolButton);
+	build_button->set_text("Build");
+	build_button->set_tooltip("Build solution");
+	build_button->set_focus_mode(Control::FOCUS_NONE);
+	build_button->connect("pressed", MonoBottomPanel::get_singleton(), "_build_project_pressed");
+	editor->get_menu_hb()->add_child(build_button);
 
 	// External editor settings
 	EditorSettings *ed_settings = EditorSettings::get_singleton();
 	EDITOR_DEF("mono/editor/external_editor", EDITOR_NONE);
 
-	String settings_hint_str = "None";
+	String settings_hint_str = "Disabled";
 
 #ifdef WINDOWS_ENABLED
 	settings_hint_str += ",MonoDevelop,Visual Studio Code";
@@ -440,7 +523,9 @@ MonoReloadNode *MonoReloadNode::singleton = NULL;
 
 void MonoReloadNode::_reload_timer_timeout() {
 
-	CSharpLanguage::get_singleton()->reload_assemblies_if_needed(false);
+	if (CSharpLanguage::get_singleton()->is_assembly_reloading_needed()) {
+		CSharpLanguage::get_singleton()->reload_assemblies(false);
+	}
 }
 
 void MonoReloadNode::restart_reload_timer() {
@@ -458,7 +543,9 @@ void MonoReloadNode::_notification(int p_what) {
 	switch (p_what) {
 		case MainLoop::NOTIFICATION_WM_FOCUS_IN: {
 			restart_reload_timer();
-			CSharpLanguage::get_singleton()->reload_assemblies_if_needed(true);
+			if (CSharpLanguage::get_singleton()->is_assembly_reloading_needed()) {
+				CSharpLanguage::get_singleton()->reload_assemblies(false);
+			}
 		} break;
 		default: {
 		} break;

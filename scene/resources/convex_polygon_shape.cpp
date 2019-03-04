@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -38,10 +38,9 @@ Vector<Vector3> ConvexPolygonShape::_gen_debug_mesh_lines() {
 
 	if (points.size() > 3) {
 
-		QuickHull qh;
 		Vector<Vector3> varr = Variant(points);
 		Geometry::MeshData md;
-		Error err = qh.build(varr, md);
+		Error err = QuickHull::build(varr, md);
 		if (err == OK) {
 			Vector<Vector3> lines;
 			lines.resize(md.edges.size() * 2);

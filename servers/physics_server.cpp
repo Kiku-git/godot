@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -709,6 +709,8 @@ void PhysicsServer::_bind_methods() {
 	BIND_ENUM_CONSTANT(SPACE_PARAM_BODY_TIME_TO_SLEEP);
 	BIND_ENUM_CONSTANT(SPACE_PARAM_BODY_ANGULAR_VELOCITY_DAMP_RATIO);
 	BIND_ENUM_CONSTANT(SPACE_PARAM_CONSTRAINT_DEFAULT_BIAS);
+	BIND_ENUM_CONSTANT(SPACE_PARAM_TEST_MOTION_MIN_CONTACT_DEPTH);
+
 	BIND_ENUM_CONSTANT(BODY_AXIS_LINEAR_X);
 	BIND_ENUM_CONSTANT(BODY_AXIS_LINEAR_Y);
 	BIND_ENUM_CONSTANT(BODY_AXIS_LINEAR_Z);
@@ -737,11 +739,11 @@ const String PhysicsServerManager::setting_property_name("physics/3d/physics_eng
 
 void PhysicsServerManager::on_servers_changed() {
 
-	String physics_servers("DEFAULT");
+	String physics_servers2("DEFAULT");
 	for (int i = get_servers_count() - 1; 0 <= i; --i) {
-		physics_servers += "," + get_server_name(i);
+		physics_servers2 += "," + get_server_name(i);
 	}
-	ProjectSettings::get_singleton()->set_custom_property_info(setting_property_name, PropertyInfo(Variant::STRING, setting_property_name, PROPERTY_HINT_ENUM, physics_servers));
+	ProjectSettings::get_singleton()->set_custom_property_info(setting_property_name, PropertyInfo(Variant::STRING, setting_property_name, PROPERTY_HINT_ENUM, physics_servers2));
 }
 
 void PhysicsServerManager::register_server(const String &p_name, CreatePhysicsServerCallback p_creat_callback) {

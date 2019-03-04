@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -36,7 +36,7 @@
 #include "editor/editor_node.h"
 #include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
-#include "scene/resources/bit_mask.h"
+#include "scene/resources/bit_map.h"
 #include "scene/resources/dynamic_font.h"
 #include "scene/resources/material.h"
 #include "scene/resources/mesh.h"
@@ -86,22 +86,32 @@ Ref<Texture> EditorTexturePreviewPlugin::generate(const RES &p_from, const Size2
 
 	Ref<Image> img;
 	Ref<AtlasTexture> atex = p_from;
+	Ref<LargeTexture> ltex = p_from;
 	if (atex.is_valid()) {
 		Ref<Texture> tex = atex->get_atlas();
 		if (!tex.is_valid()) {
 			return Ref<Texture>();
 		}
+
 		Ref<Image> atlas = tex->get_data();
+		if (!atlas.is_valid()) {
+			return Ref<Texture>();
+		}
+
 		img = atlas->get_rect(atex->get_region());
+	} else if (ltex.is_valid()) {
+		img = ltex->to_image();
 	} else {
 		Ref<Texture> tex = p_from;
 		img = tex->get_data();
+		if (img.is_valid()) {
+			img = img->duplicate();
+		}
 	}
 
 	if (img.is_null() || img->empty())
 		return Ref<Texture>();
 
-	img = img->duplicate();
 	img->clear_mipmaps();
 
 	if (img->is_compressed()) {
@@ -329,7 +339,7 @@ Ref<Texture> EditorMaterialPreviewPlugin::generate(const RES &p_from, const Size
 			OS::get_singleton()->delay_usec(10);
 		}
 
-		Ref<Image> img = VS::get_singleton()->VS::get_singleton()->texture_get_data(viewport_texture);
+		Ref<Image> img = VS::get_singleton()->texture_get_data(viewport_texture);
 		VS::get_singleton()->mesh_surface_set_material(sphere, 0, RID());
 
 		ERR_FAIL_COND_V(!img.is_valid(), Ref<ImageTexture>());
@@ -729,7 +739,7 @@ Ref<Texture> EditorMeshPreviewPlugin::generate(const RES &p_from, const Size2 p_
 		OS::get_singleton()->delay_usec(10);
 	}
 
-	Ref<Image> img = VS::get_singleton()->VS::get_singleton()->texture_get_data(viewport_texture);
+	Ref<Image> img = VS::get_singleton()->texture_get_data(viewport_texture);
 	ERR_FAIL_COND_V(img.is_null(), Ref<ImageTexture>());
 
 	VS::get_singleton()->instance_set_base(mesh_instance, RID());
@@ -840,16 +850,17 @@ Ref<Texture> EditorFontPreviewPlugin::generate_from_path(const String &p_path, c
 
 	font->draw(canvas_item, pos, sampled_text);
 
-	VS::get_singleton()->viewport_set_update_mode(viewport, VS::VIEWPORT_UPDATE_ONCE); //once used for capture
-
 	preview_done = false;
+	VS::get_singleton()->viewport_set_update_mode(viewport, VS::VIEWPORT_UPDATE_ONCE); //once used for capture
 	VS::get_singleton()->request_frame_drawn_callback(const_cast<EditorFontPreviewPlugin *>(this), "_preview_done", Variant());
 
 	while (!preview_done) {
 		OS::get_singleton()->delay_usec(10);
 	}
 
-	Ref<Image> img = VS::get_singleton()->VS::get_singleton()->texture_get_data(viewport_texture);
+	VS::get_singleton()->canvas_item_clear(canvas_item);
+
+	Ref<Image> img = VS::get_singleton()->texture_get_data(viewport_texture);
 	ERR_FAIL_COND_V(img.is_null(), Ref<ImageTexture>());
 
 	img->convert(Image::FORMAT_RGBA8);
@@ -873,7 +884,11 @@ Ref<Texture> EditorFontPreviewPlugin::generate_from_path(const String &p_path, c
 
 Ref<Texture> EditorFontPreviewPlugin::generate(const RES &p_from, const Size2 p_size) const {
 
-	return generate_from_path(p_from->get_path(), p_size);
+	String path = p_from->get_path();
+	if (!FileAccess::exists(path)) {
+		return Ref<Texture>();
+	}
+	return generate_from_path(path, p_size);
 }
 
 EditorFontPreviewPlugin::EditorFontPreviewPlugin() {

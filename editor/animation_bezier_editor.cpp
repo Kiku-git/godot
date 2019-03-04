@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -408,7 +408,8 @@ void AnimationBezierTrackEdit::_notification(int p_what) {
 			}
 
 			//draw edited curve
-			_draw_track(track, accent);
+			const Color highlight = get_color("highlight_color", "Editor");
+			_draw_track(track, highlight);
 		}
 
 		//draw editor handles
@@ -757,7 +758,7 @@ void AnimationBezierTrackEdit::_gui_input(const Ref<InputEvent> &p_event) {
 				time += 0.001;
 			}
 
-			undo_redo->create_action("Add Bezier Point");
+			undo_redo->create_action(TTR("Add Bezier Point"));
 			undo_redo->add_do_method(animation.ptr(), "track_insert_key", track, time, new_point);
 			undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_position", track, time);
 			undo_redo->commit_action();
@@ -822,7 +823,7 @@ void AnimationBezierTrackEdit::_gui_input(const Ref<InputEvent> &p_event) {
 
 	if (moving_handle != 0 && mb.is_valid() && !mb->is_pressed() && mb->get_button_index() == BUTTON_LEFT) {
 
-		undo_redo->create_action("Move Bezier Points");
+		undo_redo->create_action(TTR("Move Bezier Points"));
 		undo_redo->add_do_method(animation.ptr(), "bezier_track_set_key_in_handle", track, moving_handle_key, moving_handle_left);
 		undo_redo->add_do_method(animation.ptr(), "bezier_track_set_key_out_handle", track, moving_handle_key, moving_handle_right);
 		undo_redo->add_undo_method(animation.ptr(), "bezier_track_set_key_in_handle", track, moving_handle_key, animation->bezier_track_get_key_in_handle(track, moving_handle_key));
@@ -838,7 +839,7 @@ void AnimationBezierTrackEdit::_gui_input(const Ref<InputEvent> &p_event) {
 		if (moving_selection) {
 			//combit it
 
-			undo_redo->create_action("Move Bezier Points");
+			undo_redo->create_action(TTR("Move Bezier Points"));
 
 			List<AnimMoveRestore> to_restore;
 			// 1-remove the keys
@@ -1052,7 +1053,7 @@ void AnimationBezierTrackEdit::_menu_selected(int p_index) {
 				time += 0.001;
 			}
 
-			undo_redo->create_action("Add Bezier Point");
+			undo_redo->create_action(TTR("Add Bezier Point"));
 			undo_redo->add_do_method(animation.ptr(), "track_insert_key", track, time, new_point);
 			undo_redo->add_undo_method(animation.ptr(), "track_remove_key_at_position", track, time);
 			undo_redo->commit_action();

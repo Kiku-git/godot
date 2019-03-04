@@ -6,7 +6,7 @@ import glob
 import string
 import datetime
 import subprocess
-from compat import iteritems, isbasestring
+from compat import iteritems, isbasestring, decode_utf8
 
 
 def add_source_files(self, sources, filetype, lib_env=None, shared=False):
@@ -61,14 +61,22 @@ def update_version(module_version_string=""):
     # NOTE: It is safe to generate this file here, since this is still executed serially
     fhash = open("core/version_hash.gen.h", "w")
     githash = ""
-    if os.path.isfile(".git/HEAD"):
-        head = open(".git/HEAD", "r").readline().strip()
+    gitfolder = ".git"
+
+    if os.path.isfile(".git"):
+        module_folder = open(".git", "r").readline().strip()
+        if module_folder.startswith("gitdir: "):
+            gitfolder = module_folder[8:]
+
+    if os.path.isfile(os.path.join(gitfolder, "HEAD")):
+        head = open(os.path.join(gitfolder, "HEAD"), "r").readline().strip()
         if head.startswith("ref: "):
-            head = ".git/" + head[5:]
+            head = os.path.join(gitfolder, head[5:])
             if os.path.isfile(head):
                 githash = open(head, "r").readline().strip()
         else:
             githash = head
+
     fhash.write("#define VERSION_HASH \"" + githash + "\"")
     fhash.close()
 
@@ -330,7 +338,7 @@ def split_lib(self, libname, src_list = None, env_lib = None):
     list = []
     lib_list = []
 
-    if src_list == None:
+    if src_list is None:
         src_list = getattr(env, libname + "_sources")
 
     if type(env_lib) == type(None):
@@ -591,7 +599,7 @@ def generate_vs_project(env, num_jobs):
         release_debug_targets = ['bin\\godot.windows.opt.tools.32.exe'] + ['bin\\godot.windows.opt.tools.64.exe']
         targets = debug_targets + release_targets + release_debug_targets
         if not env.get('MSVS'):
-            env['MSVS']['PROJECTSUFFIX'] = '.vcxproj'    
+            env['MSVS']['PROJECTSUFFIX'] = '.vcxproj'
             env['MSVS']['SOLUTIONSUFFIX'] = '.sln'
         env.MSVSProject(
             target=['#godot' + env['MSVSPROJECTSUFFIX']],
@@ -628,3 +636,37 @@ def CommandNoCache(env, target, sources, command, **args):
     result = env.Command(target, sources, command, **args)
     env.NoCache(result)
     return result
+
+def detect_darwin_sdk_path(platform, env):
+    sdk_name = ''
+    if platform == 'osx':
+        sdk_name = 'macosx'
+        var_name = 'MACOS_SDK_PATH'
+    elif platform == 'iphone':
+        sdk_name = 'iphoneos'
+        var_name = 'IPHONESDK'
+    elif platform == 'iphonesimulator':
+        sdk_name = 'iphonesimulator'
+        var_name = 'IPHONESDK'
+    else:
+        raise Exception("Invalid platform argument passed to detect_darwin_sdk_path")
+
+    if not env[var_name]:
+        try:
+            sdk_path = decode_utf8(subprocess.check_output(['xcrun', '--sdk', sdk_name, '--show-sdk-path']).strip())
+            if sdk_path:
+                env[var_name] = sdk_path
+        except (subprocess.CalledProcessError, OSError) as e:
+            print("Failed to find SDK path while running xcrun --sdk {} --show-sdk-path.".format(sdk_name))
+            raise
+
+def get_compiler_version(env):
+    version = decode_utf8(subprocess.check_output([env['CXX'], '--version']).strip())
+    match = re.search('[0-9][0-9.]*', version)
+    if match is not None:
+        return match.group().split('.')
+    else:
+        return None
+
+def use_gcc(env):
+    return 'gcc' in os.path.basename(env["CC"])

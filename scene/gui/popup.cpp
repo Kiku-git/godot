@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -52,9 +52,13 @@ void Popup::_notification(int p_what) {
 //small helper to make editing of these easier in editor
 #ifdef TOOLS_ENABLED
 		if (Engine::get_singleton()->is_editor_hint() && get_tree()->get_edited_scene_root() && get_tree()->get_edited_scene_root()->is_a_parent_of(this)) {
+			//edited on editor
 			set_as_toplevel(false);
-		}
+		} else
 #endif
+				if (is_visible()) {
+			hide();
+		}
 	}
 }
 
@@ -120,49 +124,22 @@ void Popup::popup_centered_minsize(const Size2 &p_minsize) {
 
 void Popup::popup_centered(const Size2 &p_size) {
 
-	Point2 window_size = get_viewport_rect().size;
-
-	emit_signal("about_to_show");
 	Rect2 rect;
+	Size2 window_size = get_viewport_rect().size;
 	rect.size = p_size == Size2() ? get_size() : p_size;
-
 	rect.position = ((window_size - rect.size) / 2.0).floor();
-	set_position(rect.position);
-	set_size(rect.size);
 
-	show_modal(exclusive);
-	_fix_size();
-
-	Control *focusable = find_next_valid_focus();
-	if (focusable)
-		focusable->grab_focus();
-
-	_post_popup();
-	notification(NOTIFICATION_POST_POPUP);
-	popped_up = true;
+	popup(rect);
 }
 
 void Popup::popup_centered_ratio(float p_screen_ratio) {
 
-	emit_signal("about_to_show");
-
 	Rect2 rect;
-	Point2 window_size = get_viewport_rect().size;
+	Size2 window_size = get_viewport_rect().size;
 	rect.size = (window_size * p_screen_ratio).floor();
 	rect.position = ((window_size - rect.size) / 2.0).floor();
-	set_position(rect.position);
-	set_size(rect.size);
 
-	show_modal(exclusive);
-	_fix_size();
-
-	Control *focusable = find_next_valid_focus();
-	if (focusable)
-		focusable->grab_focus();
-
-	_post_popup();
-	notification(NOTIFICATION_POST_POPUP);
-	popped_up = true;
+	popup(rect);
 }
 
 void Popup::popup(const Rect2 &p_bounds) {

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -1662,7 +1662,17 @@ Variant::operator Transform() const {
 		return Transform(*_data._basis, Vector3());
 	else if (type == QUAT)
 		return Transform(Basis(*reinterpret_cast<const Quat *>(_data._mem)), Vector3());
-	else
+	else if (type == TRANSFORM2D) {
+		const Transform2D &t = *_data._transform2d;
+		Transform m;
+		m.basis.elements[0][0] = t.elements[0][0];
+		m.basis.elements[1][0] = t.elements[0][1];
+		m.basis.elements[0][1] = t.elements[1][0];
+		m.basis.elements[1][1] = t.elements[1][1];
+		m.origin[0] = t.elements[2][0];
+		m.origin[1] = t.elements[2][1];
+		return m;
+	} else
 		return Transform();
 }
 
@@ -1721,6 +1731,14 @@ Variant::operator RID() const {
 	else if (type == OBJECT && !_get_obj().ref.is_null()) {
 		return _get_obj().ref.get_rid();
 	} else if (type == OBJECT && _get_obj().obj) {
+#ifdef DEBUG_ENABLED
+		if (ScriptDebugger::get_singleton()) {
+			if (!ObjectDB::instance_validate(_get_obj().obj)) {
+				ERR_EXPLAIN("Invalid pointer (object was deleted)");
+				ERR_FAIL_V(RID());
+			};
+		};
+#endif
 		Variant::CallError ce;
 		Variant ret = _get_obj().obj->call(CoreStringNames::get_singleton()->get_rid, NULL, 0, ce);
 		if (ce.error == Variant::CallError::CALL_OK && ret.get_type() == Variant::_RID) {
@@ -2798,27 +2816,37 @@ uint32_t Variant::hash() const {
 
 			const PoolVector<uint8_t> &arr = *reinterpret_cast<const PoolVector<uint8_t> *>(_data._mem);
 			int len = arr.size();
-			PoolVector<uint8_t>::Read r = arr.read();
-
-			return hash_djb2_buffer((uint8_t *)&r[0], len);
+			if (likely(len)) {
+				PoolVector<uint8_t>::Read r = arr.read();
+				return hash_djb2_buffer((uint8_t *)&r[0], len);
+			} else {
+				return hash_djb2_one_64(0);
+			}
 
 		} break;
 		case POOL_INT_ARRAY: {
 
 			const PoolVector<int> &arr = *reinterpret_cast<const PoolVector<int> *>(_data._mem);
 			int len = arr.size();
-			PoolVector<int>::Read r = arr.read();
-
-			return hash_djb2_buffer((uint8_t *)&r[0], len * sizeof(int));
+			if (likely(len)) {
+				PoolVector<int>::Read r = arr.read();
+				return hash_djb2_buffer((uint8_t *)&r[0], len * sizeof(int));
+			} else {
+				return hash_djb2_one_64(0);
+			}
 
 		} break;
 		case POOL_REAL_ARRAY: {
 
 			const PoolVector<real_t> &arr = *reinterpret_cast<const PoolVector<real_t> *>(_data._mem);
 			int len = arr.size();
-			PoolVector<real_t>::Read r = arr.read();
 
-			return hash_djb2_buffer((uint8_t *)&r[0], len * sizeof(real_t));
+			if (likely(len)) {
+				PoolVector<real_t>::Read r = arr.read();
+				return hash_djb2_buffer((uint8_t *)&r[0], len * sizeof(real_t));
+			} else {
+				return hash_djb2_one_float(0.0);
+			}
 
 		} break;
 		case POOL_STRING_ARRAY: {
@@ -2826,10 +2854,13 @@ uint32_t Variant::hash() const {
 			uint32_t hash = 5831;
 			const PoolVector<String> &arr = *reinterpret_cast<const PoolVector<String> *>(_data._mem);
 			int len = arr.size();
-			PoolVector<String>::Read r = arr.read();
 
-			for (int i = 0; i < len; i++) {
-				hash = hash_djb2_one_32(r[i].hash(), hash);
+			if (likely(len)) {
+				PoolVector<String>::Read r = arr.read();
+
+				for (int i = 0; i < len; i++) {
+					hash = hash_djb2_one_32(r[i].hash(), hash);
+				}
 			}
 
 			return hash;
@@ -2839,48 +2870,54 @@ uint32_t Variant::hash() const {
 			uint32_t hash = 5831;
 			const PoolVector<Vector2> &arr = *reinterpret_cast<const PoolVector<Vector2> *>(_data._mem);
 			int len = arr.size();
-			PoolVector<Vector2>::Read r = arr.read();
 
-			for (int i = 0; i < len; i++) {
-				hash = hash_djb2_one_float(r[i].x, hash);
-				hash = hash_djb2_one_float(r[i].y, hash);
+			if (likely(len)) {
+				PoolVector<Vector2>::Read r = arr.read();
+
+				for (int i = 0; i < len; i++) {
+					hash = hash_djb2_one_float(r[i].x, hash);
+					hash = hash_djb2_one_float(r[i].y, hash);
+				}
 			}
 
 			return hash;
-
 		} break;
 		case POOL_VECTOR3_ARRAY: {
 
 			uint32_t hash = 5831;
 			const PoolVector<Vector3> &arr = *reinterpret_cast<const PoolVector<Vector3> *>(_data._mem);
 			int len = arr.size();
-			PoolVector<Vector3>::Read r = arr.read();
 
-			for (int i = 0; i < len; i++) {
-				hash = hash_djb2_one_float(r[i].x, hash);
-				hash = hash_djb2_one_float(r[i].y, hash);
-				hash = hash_djb2_one_float(r[i].z, hash);
+			if (likely(len)) {
+				PoolVector<Vector3>::Read r = arr.read();
+
+				for (int i = 0; i < len; i++) {
+					hash = hash_djb2_one_float(r[i].x, hash);
+					hash = hash_djb2_one_float(r[i].y, hash);
+					hash = hash_djb2_one_float(r[i].z, hash);
+				}
 			}
 
 			return hash;
-
 		} break;
 		case POOL_COLOR_ARRAY: {
 
 			uint32_t hash = 5831;
 			const PoolVector<Color> &arr = *reinterpret_cast<const PoolVector<Color> *>(_data._mem);
 			int len = arr.size();
-			PoolVector<Color>::Read r = arr.read();
 
-			for (int i = 0; i < len; i++) {
-				hash = hash_djb2_one_float(r[i].r, hash);
-				hash = hash_djb2_one_float(r[i].g, hash);
-				hash = hash_djb2_one_float(r[i].b, hash);
-				hash = hash_djb2_one_float(r[i].a, hash);
+			if (likely(len)) {
+				PoolVector<Color>::Read r = arr.read();
+
+				for (int i = 0; i < len; i++) {
+					hash = hash_djb2_one_float(r[i].r, hash);
+					hash = hash_djb2_one_float(r[i].g, hash);
+					hash = hash_djb2_one_float(r[i].b, hash);
+					hash = hash_djb2_one_float(r[i].a, hash);
+				}
 			}
 
 			return hash;
-
 		} break;
 		default: {}
 	}

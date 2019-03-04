@@ -1,12 +1,12 @@
 /*************************************************************************/
-/*  mobile_interface.cpp                                                 */
+/*  mobile_vr_interface.cpp                                              */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -31,7 +31,7 @@
 #include "mobile_vr_interface.h"
 #include "core/os/input.h"
 #include "core/os/os.h"
-#include "servers/visual/visual_server_global.h"
+#include "servers/visual/visual_server_globals.h"
 
 StringName MobileVRInterface::get_name() const {
 	return "Native mobile";

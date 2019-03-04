@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -475,7 +475,6 @@ void DependencyRemoveDialog::show(const Vector<String> &p_folders, const Vector<
 	Vector<RemovedDependency> removed_deps;
 	_find_all_removed_dependencies(EditorFileSystem::get_singleton()->get_filesystem(), removed_deps);
 	removed_deps.sort();
-
 	if (removed_deps.empty()) {
 		owners->hide();
 		text->set_text(TTR("Remove selected files from the project? (no undo)"));
@@ -486,6 +485,7 @@ void DependencyRemoveDialog::show(const Vector<String> &p_folders, const Vector<
 		text->set_text(TTR("The files being removed are required by other resources in order for them to work.\nRemove them anyway? (no undo)"));
 		popup_centered_minsize(Size2(500, 350));
 	}
+	EditorFileSystem::get_singleton()->scan_changes();
 }
 
 void DependencyRemoveDialog::ok_pressed() {
@@ -495,11 +495,23 @@ void DependencyRemoveDialog::ok_pressed() {
 			Resource *res = ResourceCache::get(files_to_delete[i]);
 			res->set_path("");
 		}
+
+		// If the file we are deleting is the main scene or default environment, clear its definition.
+		if (files_to_delete[i] == ProjectSettings::get_singleton()->get("application/run/main_scene")) {
+			ProjectSettings::get_singleton()->set("application/run/main_scene", "");
+		}
+
+		if (files_to_delete[i] == ProjectSettings::get_singleton()->get("rendering/environment/default_environment")) {
+			ProjectSettings::get_singleton()->set("rendering/environment/default_environment", "");
+		}
+
 		String path = OS::get_singleton()->get_resource_dir() + files_to_delete[i].replace_first("res://", "/");
 		print_verbose("Moving to trash: " + path);
 		Error err = OS::get_singleton()->move_to_trash(path);
 		if (err != OK) {
 			EditorNode::get_singleton()->add_io_error(TTR("Cannot remove:") + "\n" + files_to_delete[i] + "\n");
+		} else {
+			emit_signal("file_removed", files_to_delete[i]);
 		}
 	}
 
@@ -515,6 +527,8 @@ void DependencyRemoveDialog::ok_pressed() {
 			Error err = OS::get_singleton()->move_to_trash(path);
 			if (err != OK) {
 				EditorNode::get_singleton()->add_io_error(TTR("Cannot remove:") + "\n" + dirs_to_delete[i] + "\n");
+			} else {
+				emit_signal("folder_removed", dirs_to_delete[i]);
 			}
 		}
 
@@ -540,6 +554,11 @@ void DependencyRemoveDialog::ok_pressed() {
 	}
 }
 
+void DependencyRemoveDialog::_bind_methods() {
+	ADD_SIGNAL(MethodInfo("file_removed", PropertyInfo(Variant::STRING, "file")));
+	ADD_SIGNAL(MethodInfo("folder_removed", PropertyInfo(Variant::STRING, "folder")));
+}
+
 DependencyRemoveDialog::DependencyRemoveDialog() {
 
 	VBoxContainer *vb = memnew(VBoxContainer);
@@ -557,8 +576,9 @@ DependencyRemoveDialog::DependencyRemoveDialog() {
 
 //////////////
 
-void DependencyErrorDialog::show(const String &p_for_file, const Vector<String> &report) {
+void DependencyErrorDialog::show(Mode p_mode, const String &p_for_file, const Vector<String> &report) {
 
+	mode = p_mode;
 	for_file = p_for_file;
 	set_title(TTR("Error loading:") + " " + p_for_file.get_file());
 	files->clear();
@@ -584,7 +604,14 @@ void DependencyErrorDialog::show(const String &p_for_file, const Vector<String> 
 
 void DependencyErrorDialog::ok_pressed() {
 
-	EditorNode::get_singleton()->load_scene(for_file, true);
+	switch (mode) {
+		case MODE_SCENE:
+			EditorNode::get_singleton()->load_scene(for_file, true);
+			break;
+		case MODE_RESOURCE:
+			EditorNode::get_singleton()->load_resource(for_file, true);
+			break;
+	}
 }
 
 void DependencyErrorDialog::custom_action(const String &) {
@@ -599,7 +626,7 @@ DependencyErrorDialog::DependencyErrorDialog() {
 
 	files = memnew(Tree);
 	files->set_hide_root(true);
-	vb->add_margin_child(TTR("Scene failed to load due to missing dependencies:"), files, true);
+	vb->add_margin_child(TTR("Load failed due to missing dependencies:"), files, true);
 	files->set_v_size_flags(SIZE_EXPAND_FILL);
 	files->set_custom_minimum_size(Size2(1, 200));
 	get_ok()->set_text(TTR("Open Anyway"));

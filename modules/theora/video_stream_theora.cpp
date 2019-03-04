@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -296,8 +296,8 @@ void VideoStreamPlaybackTheora::set_file(const String &p_file) {
 		if (ogg_sync_pageout(&oy, &og) > 0) {
 			queue_page(&og); /* demux into the appropriate stream */
 		} else {
-			int ret = buffer_data(); /* someone needs more data */
-			if (ret == 0) {
+			int ret2 = buffer_data(); /* someone needs more data */
+			if (ret2 == 0) {
 				fprintf(stderr, "End of file while searching for codec headers.\n");
 				clear();
 				return;

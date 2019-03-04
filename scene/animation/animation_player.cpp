@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -287,7 +287,6 @@ void AnimationPlayer::_ensure_node_caches(AnimationData *p_anim) {
 						// broken track (nonexistent bone)
 						p_anim->node_cache[i]->skeleton = NULL;
 						p_anim->node_cache[i]->spatial = NULL;
-						printf("bone is %ls\n", String(bone_name).c_str());
 						ERR_CONTINUE(p_anim->node_cache[i]->bone_idx < 0);
 					}
 				} else {
@@ -344,10 +343,16 @@ void AnimationPlayer::_animation_process_animation(AnimationData *p_anim, float 
 
 	for (int i = 0; i < a->get_track_count(); i++) {
 
+		// If an animation changes this animation (or it animates itself)
+		// we need to recreate our animation cache
+		if (p_anim->node_cache.size() != a->get_track_count()) {
+			_ensure_node_caches(p_anim);
+		}
+
 		TrackNodeCache *nc = p_anim->node_cache[i];
 
-		if (!nc) // no node cache for this track, skip it
-			continue;
+		if (!nc)
+			continue; // no node cache for this track, skip it
 
 		if (!a->track_is_enabled(i))
 			continue; // do nothing if the track is disabled
@@ -985,25 +990,12 @@ void AnimationPlayer::remove_animation(const StringName &p_name) {
 
 void AnimationPlayer::_ref_anim(const Ref<Animation> &p_anim) {
 
-	if (used_anims.has(p_anim))
-		used_anims[p_anim]++;
-	else {
-		used_anims[p_anim] = 1;
-		Ref<Animation>(p_anim)->connect("changed", this, "_animation_changed");
-	}
+	Ref<Animation>(p_anim)->connect(SceneStringNames::get_singleton()->tracks_changed, this, "_animation_changed", varray(), CONNECT_REFERENCE_COUNTED);
 }
 
 void AnimationPlayer::_unref_anim(const Ref<Animation> &p_anim) {
 
-	ERR_FAIL_COND(!used_anims.has(p_anim));
-
-	int &n = used_anims[p_anim];
-	n--;
-	if (n == 0) {
-
-		Ref<Animation>(p_anim)->disconnect("changed", this, "_animation_changed");
-		used_anims.erase(p_anim);
-	}
+	Ref<Animation>(p_anim)->disconnect(SceneStringNames::get_singleton()->tracks_changed, this, "_animation_changed");
 }
 
 void AnimationPlayer::rename_animation(const StringName &p_name, const StringName &p_new_name) {
@@ -1120,6 +1112,15 @@ void AnimationPlayer::queue(const StringName &p_name) {
 		queued.push_back(p_name);
 }
 
+PoolVector<String> AnimationPlayer::get_queue() {
+	PoolVector<String> ret;
+	for (List<StringName>::Element *E = queued.front(); E; E = E->next()) {
+		ret.push_back(E->get());
+	}
+
+	return ret;
+}
+
 void AnimationPlayer::clear_queue() {
 	queued.clear();
 }
@@ -1131,8 +1132,6 @@ void AnimationPlayer::play_backwards(const StringName &p_name, float p_custom_bl
 
 void AnimationPlayer::play(const StringName &p_name, float p_custom_blend, float p_custom_scale, bool p_from_end) {
 
-	//printf("animation is %ls\n", String(p_name).c_str());
-	//ERR_FAIL_COND(!is_inside_scene());
 	StringName name = p_name;
 
 	if (String(name) == "")
@@ -1190,9 +1189,21 @@ void AnimationPlayer::play(const StringName &p_name, float p_custom_blend, float
 	_stop_playing_caches();
 
 	c.current.from = &animation_set[name];
-	c.current.pos = p_from_end ? c.current.from->animation->get_length() : 0;
+
+	if (c.assigned != name) { // reset
+		c.current.pos = p_from_end ? c.current.from->animation->get_length() : 0;
+	} else {
+		if (p_from_end && c.current.pos == 0) {
+			// Animation reset BUT played backwards, set position to the end
+			c.current.pos = c.current.from->animation->get_length();
+		} else if (!p_from_end && c.current.pos == c.current.from->animation->get_length()) {
+			// Animation resumed but already ended, set position to the beggining
+			c.current.pos = 0;
+		}
+	}
+
 	c.current.speed_scale = p_custom_scale;
-	c.assigned = p_name;
+	c.assigned = name;
 	c.seeked = false;
 	c.started = true;
 
@@ -1271,6 +1282,7 @@ void AnimationPlayer::stop(bool p_reset) {
 	if (p_reset) {
 		c.current.from = NULL;
 		c.current.speed_scale = 1;
+		c.current.pos = 0;
 	}
 	_set_process(false);
 	queued.clear();
@@ -1348,6 +1360,9 @@ void AnimationPlayer::_animation_changed() {
 
 	clear_caches();
 	emit_signal("caches_cleared");
+	if (is_playing()) {
+		playback.seeked = true; //need to restart stuff, like audio
+	}
 }
 
 void AnimationPlayer::_stop_playing_caches() {
@@ -1415,6 +1430,8 @@ StringName AnimationPlayer::find_animation(const Ref<Animation> &p_animation) co
 }
 
 void AnimationPlayer::set_autoplay(const String &p_name) {
+	if (is_inside_tree() && !Engine::get_singleton()->is_editor_hint())
+		WARN_PRINT("Setting autoplay after the node has been added to the scene has no effect.");
 
 	autoplay = p_name;
 }
@@ -1600,6 +1617,7 @@ void AnimationPlayer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_assigned_animation", "anim"), &AnimationPlayer::set_assigned_animation);
 	ClassDB::bind_method(D_METHOD("get_assigned_animation"), &AnimationPlayer::get_assigned_animation);
 	ClassDB::bind_method(D_METHOD("queue", "name"), &AnimationPlayer::queue);
+	ClassDB::bind_method(D_METHOD("get_queue"), &AnimationPlayer::get_queue);
 	ClassDB::bind_method(D_METHOD("clear_queue"), &AnimationPlayer::clear_queue);
 
 	ClassDB::bind_method(D_METHOD("set_active", "active"), &AnimationPlayer::set_active);

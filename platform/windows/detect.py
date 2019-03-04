@@ -147,9 +147,9 @@ def setup_msvc_auto(env):
     # Note: actual compiler version can be found in env['MSVC_VERSION'], e.g. "14.1" for VS2015
     # Get actual target arch into bits (it may be "default" at this point):
     if env['TARGET_ARCH'] in ('amd64', 'x86_64'):
-        env['bits'] = 64
+        env['bits'] = '64'
     else:
-        env['bits'] = 32
+        env['bits'] = '32'
     print(" Found MSVC version %s, arch %s, bits=%s" % (env['MSVC_VERSION'], env['TARGET_ARCH'], env['bits']))
     if env['TARGET_ARCH'] in ('amd64', 'x86_64'):
         env["x86_libtheora_opt_vc"] = False
@@ -205,11 +205,11 @@ def configure_msvc(env, manual_msvc_config):
             print("Missing environment variable: WindowsSdkDir")
 
     env.AppendUnique(CPPDEFINES = ['WINDOWS_ENABLED', 'OPENGL_ENABLED',
-                                   'RTAUDIO_ENABLED', 'WASAPI_ENABLED',
-                                   'WINMIDI_ENABLED', 'TYPED_METHOD_BIND',
+                                   'WASAPI_ENABLED', 'WINMIDI_ENABLED',
+                                   'TYPED_METHOD_BIND',
                                    'WIN32', 'MSVC',
-                                   'WINVER=$target_win_version',
-                                   '_WIN32_WINNT=$target_win_version'])
+                                   'WINVER=%s' % env["target_win_version"],
+                                   '_WIN32_WINNT=%s' % env["target_win_version"]])
     env.AppendUnique(CPPDEFINES=['NOMINMAX']) # disable bogus min/max WinDef.h macros
     if env["bits"] == "64":
         env.AppendUnique(CPPDEFINES=['_WIN64'])
@@ -218,7 +218,7 @@ def configure_msvc(env, manual_msvc_config):
 
     LIBS = ['winmm', 'opengl32', 'dsound', 'kernel32', 'ole32', 'oleaut32',
             'user32', 'gdi32', 'IPHLPAPI', 'Shlwapi', 'wsock32', 'Ws2_32',
-            'shell32', 'advapi32', 'dinput8', 'dxguid', 'imm32', 'bcrypt']
+	    'shell32', 'advapi32', 'dinput8', 'dxguid', 'imm32', 'bcrypt','Avrt']
     env.Append(LINKFLAGS=[p + env["LIBSUFFIX"] for p in LIBS])
 
     if manual_msvc_config:
@@ -262,7 +262,7 @@ def configure_mingw(env):
                 env.Append(CCFLAGS=['-O2'])
         else: #optimize for size
             env.Prepend(CCFLAGS=['-Os'])
-   
+
 
         env.Append(LINKFLAGS=['-Wl,--subsystem,windows'])
 
@@ -281,7 +281,7 @@ def configure_mingw(env):
            env.Append(CCFLAGS=['-O2'])
         else: #optimize for size
            env.Prepend(CCFLAGS=['-Os'])
-   
+
     elif (env["target"] == "debug"):
         env.Append(CCFLAGS=['-g3', '-DDEBUG_ENABLED', '-DDEBUG_MEMORY_ENABLED'])
 
@@ -326,10 +326,10 @@ def configure_mingw(env):
 
     env.Append(CCFLAGS=['-DWINDOWS_ENABLED', '-mwindows'])
     env.Append(CCFLAGS=['-DOPENGL_ENABLED'])
-    env.Append(CCFLAGS=['-DRTAUDIO_ENABLED'])
     env.Append(CCFLAGS=['-DWASAPI_ENABLED'])
+    env.Append(CCFLAGS=['-DWINMIDI_ENABLED'])
     env.Append(CCFLAGS=['-DWINVER=%s' % env['target_win_version'], '-D_WIN32_WINNT=%s' % env['target_win_version']])
-    env.Append(LIBS=['mingw32', 'opengl32', 'dsound', 'ole32', 'd3d9', 'winmm', 'gdi32', 'iphlpapi', 'shlwapi', 'wsock32', 'ws2_32', 'kernel32', 'oleaut32', 'dinput8', 'dxguid', 'ksuser', 'imm32', 'bcrypt'])
+    env.Append(LIBS=['mingw32', 'opengl32', 'dsound', 'ole32', 'd3d9', 'winmm', 'gdi32', 'iphlpapi', 'shlwapi', 'wsock32', 'ws2_32', 'kernel32', 'oleaut32', 'dinput8', 'dxguid', 'ksuser', 'imm32', 'bcrypt','avrt'])
 
     env.Append(CPPFLAGS=['-DMINGW_ENABLED'])
 
@@ -347,12 +347,12 @@ def configure(env):
         env['ENV']['TMP'] = os.environ['TMP']
 
     # First figure out which compiler, version, and target arch we're using
-    if os.getenv("VCINSTALLDIR"):
+    if os.getenv("VCINSTALLDIR") and not env["use_mingw"]:
         # Manual setup of MSVC
         setup_msvc_manual(env)
         env.msvc = True
         manual_msvc_config = True
-    elif env.get('MSVC_VERSION', ''):
+    elif env.get('MSVC_VERSION', '') and not env["use_mingw"]:
         setup_msvc_auto(env)
         env.msvc = True
         manual_msvc_config = False

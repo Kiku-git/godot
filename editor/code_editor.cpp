@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -31,6 +31,7 @@
 #include "code_editor.h"
 
 #include "core/os/keyboard.h"
+#include "core/string_builder.h"
 #include "editor/editor_scale.h"
 #include "editor_node.h"
 #include "editor_settings.h"
@@ -98,9 +99,6 @@ void FindReplaceBar::_notification(int p_what) {
 	} else if (p_what == NOTIFICATION_VISIBILITY_CHANGED) {
 
 		set_process_unhandled_input(is_visible_in_tree());
-		if (is_visible_in_tree()) {
-			_update_size();
-		}
 	} else if (p_what == EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED) {
 
 		find_prev->set_icon(get_icon("MoveUp", "EditorIcons"));
@@ -389,7 +387,6 @@ void FindReplaceBar::_show_search() {
 		search_text->set_cursor_position(search_text->get_text().length());
 		search_current();
 	}
-	call_deferred("_update_size");
 }
 
 void FindReplaceBar::popup_search() {
@@ -482,11 +479,6 @@ void FindReplaceBar::set_text_edit(TextEdit *p_text_edit) {
 	text_edit->connect("text_changed", this, "_editor_text_changed");
 }
 
-void FindReplaceBar::_update_size() {
-
-	container->set_size(Size2(hbc->get_size().width, 1));
-}
-
 void FindReplaceBar::_bind_methods() {
 
 	ClassDB::bind_method("_unhandled_input", &FindReplaceBar::_unhandled_input);
@@ -502,7 +494,6 @@ void FindReplaceBar::_bind_methods() {
 	ClassDB::bind_method("_replace_all_pressed", &FindReplaceBar::_replace_all);
 	ClassDB::bind_method("_search_options_changed", &FindReplaceBar::_search_options_changed);
 	ClassDB::bind_method("_hide_pressed", &FindReplaceBar::_hide_bar);
-	ClassDB::bind_method("_update_size", &FindReplaceBar::_update_size);
 
 	ADD_SIGNAL(MethodInfo("search"));
 	ADD_SIGNAL(MethodInfo("error"));
@@ -510,26 +501,16 @@ void FindReplaceBar::_bind_methods() {
 
 FindReplaceBar::FindReplaceBar() {
 
-	container = memnew(MarginContainer);
-	container->add_constant_override("margin_bottom", 5 * EDSCALE);
-	add_child(container);
-	container->set_clip_contents(true);
-	container->set_h_size_flags(SIZE_EXPAND_FILL);
-
 	replace_all_mode = false;
 	preserve_cursor = false;
 
-	hbc = memnew(HBoxContainer);
-	container->add_child(hbc);
-	hbc->set_anchor_and_margin(MARGIN_RIGHT, 1, 0);
-
 	vbc_lineedit = memnew(VBoxContainer);
-	hbc->add_child(vbc_lineedit);
+	add_child(vbc_lineedit);
 	vbc_lineedit->set_h_size_flags(SIZE_EXPAND_FILL);
 	VBoxContainer *vbc_button = memnew(VBoxContainer);
-	hbc->add_child(vbc_button);
+	add_child(vbc_button);
 	VBoxContainer *vbc_option = memnew(VBoxContainer);
-	hbc->add_child(vbc_option);
+	add_child(vbc_option);
 
 	HBoxContainer *hbc_button_search = memnew(HBoxContainer);
 	vbc_button->add_child(hbc_button_search);
@@ -673,18 +654,14 @@ void CodeTextEditor::_reset_zoom() {
 	if (font.is_valid()) {
 		EditorSettings::get_singleton()->set("interface/editor/code_font_size", 14);
 		font->set_size(14);
-		zoom_nb->set_text("100%");
 	}
 }
 
 void CodeTextEditor::_line_col_changed() {
 
-	line_nb->set_text(itos(text_editor->cursor_get_line() + 1));
-
 	String line = text_editor->get_line(text_editor->cursor_get_line());
 
 	int positional_column = 0;
-
 	for (int i = 0; i < text_editor->cursor_get_column(); i++) {
 		if (line[i] == '\t') {
 			positional_column += text_editor->get_indent_size(); //tab size
@@ -693,7 +670,14 @@ void CodeTextEditor::_line_col_changed() {
 		}
 	}
 
-	col_nb->set_text(itos(positional_column + 1));
+	StringBuilder *sb = memnew(StringBuilder);
+	sb->append("(");
+	sb->append(itos(text_editor->cursor_get_line() + 1).lpad(3));
+	sb->append(",");
+	sb->append(itos(positional_column + 1).lpad(3));
+	sb->append(")");
+
+	line_and_col_txt->set_text(sb->as_string());
 }
 
 void CodeTextEditor::_text_changed() {
@@ -708,8 +692,7 @@ void CodeTextEditor::_text_changed() {
 void CodeTextEditor::_code_complete_timer_timeout() {
 	if (!is_visible_in_tree())
 		return;
-	if (enable_complete_timer)
-		text_editor->query_code_comple();
+	text_editor->query_code_comple();
 }
 
 void CodeTextEditor::_complete_request() {
@@ -747,8 +730,6 @@ bool CodeTextEditor::_add_font_size(int p_delta) {
 
 	if (font.is_valid()) {
 		int new_size = CLAMP(font->get_size() + p_delta, 8 * EDSCALE, 96 * EDSCALE);
-
-		zoom_nb->set_text(itos(100 * new_size / (14 * EDSCALE)) + "%");
 
 		if (new_size != font->get_size()) {
 			EditorSettings::get_singleton()->set("interface/editor/code_font_size", new_size / EDSCALE);
@@ -1060,37 +1041,44 @@ void CodeTextEditor::delete_lines() {
 	text_editor->end_complex_operation();
 }
 
-void CodeTextEditor::code_lines_down() {
+void CodeTextEditor::clone_lines_down() {
+	const int cursor_column = text_editor->cursor_get_column();
 	int from_line = text_editor->cursor_get_line();
 	int to_line = text_editor->cursor_get_line();
-	int column = text_editor->cursor_get_column();
+	int from_column = 0;
+	int to_column = 0;
+	int cursor_new_line = to_line + 1;
+	int cursor_new_column = text_editor->cursor_get_column();
+	String new_text = "\n" + text_editor->get_line(from_line);
+	bool selection_active = false;
 
+	text_editor->cursor_set_column(text_editor->get_line(from_line).length());
 	if (text_editor->is_selection_active()) {
+		from_column = text_editor->get_selection_from_column();
+		to_column = text_editor->get_selection_to_column();
+
 		from_line = text_editor->get_selection_from_line();
 		to_line = text_editor->get_selection_to_line();
-		column = text_editor->cursor_get_column();
-	}
-	int next_line = to_line + 1;
+		cursor_new_line = to_line + text_editor->cursor_get_line() - from_line;
+		cursor_new_column = to_column == cursor_column ? 2 * to_column - from_column : to_column;
+		new_text = text_editor->get_selection_text();
+		selection_active = true;
 
-	if (to_line >= text_editor->get_line_count() - 1) {
-		text_editor->set_line(to_line, text_editor->get_line(to_line) + "\n");
+		text_editor->cursor_set_line(to_line);
+		text_editor->cursor_set_column(to_column);
 	}
 
 	text_editor->begin_complex_operation();
+
 	for (int i = from_line; i <= to_line; i++) {
-
 		text_editor->unfold_line(i);
-		if (i >= text_editor->get_line_count() - 1) {
-			text_editor->set_line(i, text_editor->get_line(i) + "\n");
-		}
-		String line_clone = text_editor->get_line(i);
-		text_editor->insert_at(line_clone, next_line);
-		next_line++;
 	}
-
-	text_editor->cursor_set_column(column);
-	if (text_editor->is_selection_active()) {
-		text_editor->select(to_line + 1, text_editor->get_selection_from_column(), next_line - 1, text_editor->get_selection_to_column());
+	text_editor->deselect();
+	text_editor->insert_text_at_cursor(new_text);
+	text_editor->cursor_set_line(cursor_new_line);
+	text_editor->cursor_set_column(cursor_new_column);
+	if (selection_active) {
+		text_editor->select(to_line, to_column, 2 * to_line - from_line, 2 * to_column - from_column);
 	}
 
 	text_editor->end_complex_operation();
@@ -1131,6 +1119,24 @@ void CodeTextEditor::set_edit_state(const Variant &p_state) {
 void CodeTextEditor::set_error(const String &p_error) {
 
 	error->set_text(p_error);
+	if (p_error != "") {
+		error->set_default_cursor_shape(CURSOR_POINTING_HAND);
+	} else {
+		error->set_default_cursor_shape(CURSOR_ARROW);
+	}
+}
+
+void CodeTextEditor::set_error_pos(int p_line, int p_column) {
+	error_line = p_line;
+	error_column = p_column;
+}
+
+void CodeTextEditor::goto_error() {
+	if (error->get_text() != "") {
+		text_editor->cursor_set_line(error_line);
+		text_editor->cursor_set_column(error_column);
+		text_editor->center_viewport_to_cursor();
+	}
 }
 
 void CodeTextEditor::_update_font() {
@@ -1138,6 +1144,7 @@ void CodeTextEditor::_update_font() {
 	text_editor->add_font_override("font", get_font("source", "EditorFonts"));
 
 	Ref<Font> status_bar_font = get_font("status_source", "EditorFonts");
+	error->add_font_override("font", status_bar_font);
 	int count = status_bar->get_child_count();
 	for (int i = 0; i < count; i++) {
 		Control *n = Object::cast_to<Control>(status_bar->get_child(i));
@@ -1150,14 +1157,14 @@ void CodeTextEditor::_on_settings_change() {
 
 	_update_font();
 
+	font_size = EditorSettings::get_singleton()->get("interface/editor/code_font_size");
+
 	// AUTO BRACE COMPLETION
 	text_editor->set_auto_brace_completion(
 			EDITOR_DEF("text_editor/completion/auto_brace_complete", true));
 
 	code_complete_timer->set_wait_time(
 			EDITOR_DEF("text_editor/completion/code_complete_delay", .3f));
-
-	enable_complete_timer = EDITOR_DEF("text_editor/completion/enable_code_completion_delay", true);
 
 	// call hint settings
 	text_editor->set_callhint_settings(
@@ -1171,15 +1178,54 @@ void CodeTextEditor::_text_changed_idle_timeout() {
 	emit_signal("validate_script");
 }
 
+void CodeTextEditor::_warning_label_gui_input(const Ref<InputEvent> &p_event) {
+	Ref<InputEventMouseButton> mb = p_event;
+	if (mb.is_valid() && mb->is_pressed() && mb->get_button_index() == BUTTON_LEFT) {
+		_warning_button_pressed();
+	}
+}
+
+void CodeTextEditor::_warning_button_pressed() {
+	_set_show_warnings_panel(!is_warnings_panel_opened);
+}
+
+void CodeTextEditor::_set_show_warnings_panel(bool p_show) {
+	is_warnings_panel_opened = p_show;
+	emit_signal("show_warnings_panel", p_show);
+}
+
+void CodeTextEditor::_error_pressed(const Ref<InputEvent> &p_event) {
+	Ref<InputEventMouseButton> mb = p_event;
+	if (mb.is_valid() && mb->is_pressed() && mb->get_button_index() == BUTTON_LEFT) {
+		emit_signal("error_pressed");
+	}
+}
+
 void CodeTextEditor::_notification(int p_what) {
 
-	if (p_what == EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED) {
-		_load_theme_settings();
-		emit_signal("load_theme_settings");
+	switch (p_what) {
+		case EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED: {
+			_load_theme_settings();
+			emit_signal("load_theme_settings");
+		} break;
+		case NOTIFICATION_THEME_CHANGED: {
+			_update_font();
+		} break;
+		case NOTIFICATION_ENTER_TREE: {
+			warning_button->set_icon(get_icon("NodeWarning", "EditorIcons"));
+			add_constant_override("separation", 4 * EDSCALE);
+		} break;
+		default:
+			break;
 	}
-	if (p_what == NOTIFICATION_THEME_CHANGED) {
-		_update_font();
-	}
+}
+
+void CodeTextEditor::set_warning_nb(int p_warning_nb) {
+	warning_count_label->set_text(itos(p_warning_nb));
+	warning_count_label->set_visible(p_warning_nb > 0);
+	warning_button->set_visible(p_warning_nb > 0);
+	if (!p_warning_nb)
+		_set_show_warnings_panel(false);
 }
 
 void CodeTextEditor::_bind_methods() {
@@ -1192,9 +1238,14 @@ void CodeTextEditor::_bind_methods() {
 	ClassDB::bind_method("_code_complete_timer_timeout", &CodeTextEditor::_code_complete_timer_timeout);
 	ClassDB::bind_method("_complete_request", &CodeTextEditor::_complete_request);
 	ClassDB::bind_method("_font_resize_timeout", &CodeTextEditor::_font_resize_timeout);
+	ClassDB::bind_method("_error_pressed", &CodeTextEditor::_error_pressed);
+	ClassDB::bind_method("_warning_button_pressed", &CodeTextEditor::_warning_button_pressed);
+	ClassDB::bind_method("_warning_label_gui_input", &CodeTextEditor::_warning_label_gui_input);
 
 	ADD_SIGNAL(MethodInfo("validate_script"));
 	ADD_SIGNAL(MethodInfo("load_theme_settings"));
+	ADD_SIGNAL(MethodInfo("show_warnings_panel"));
+	ADD_SIGNAL(MethodInfo("error_pressed"));
 }
 
 void CodeTextEditor::set_code_complete_func(CodeTextEditorCodeCompleteFunc p_code_complete_func, void *p_ud) {
@@ -1209,14 +1260,15 @@ CodeTextEditor::CodeTextEditor() {
 	ED_SHORTCUT("script_editor/zoom_out", TTR("Zoom Out"), KEY_MASK_CMD | KEY_MINUS);
 	ED_SHORTCUT("script_editor/reset_zoom", TTR("Reset Zoom"), KEY_MASK_CMD | KEY_0);
 
+	text_editor = memnew(TextEdit);
+	add_child(text_editor);
+	text_editor->set_v_size_flags(SIZE_EXPAND_FILL);
+
+	// Added second so it opens at the bottom, so it won't shift the entire text editor when opening.
 	find_replace_bar = memnew(FindReplaceBar);
 	add_child(find_replace_bar);
 	find_replace_bar->set_h_size_flags(SIZE_EXPAND_FILL);
 	find_replace_bar->hide();
-
-	text_editor = memnew(TextEdit);
-	add_child(text_editor);
-	text_editor->set_v_size_flags(SIZE_EXPAND_FILL);
 
 	find_replace_bar->set_text_edit(text_editor);
 
@@ -1227,6 +1279,7 @@ CodeTextEditor::CodeTextEditor() {
 	status_bar = memnew(HBoxContainer);
 	add_child(status_bar);
 	status_bar->set_h_size_flags(SIZE_EXPAND_FILL);
+	status_bar->set_custom_minimum_size(Size2(0, 24 * EDSCALE)); // Adjust for the height of the warning icon.
 
 	idle = memnew(Timer);
 	add_child(idle);
@@ -1236,98 +1289,56 @@ CodeTextEditor::CodeTextEditor() {
 	code_complete_timer = memnew(Timer);
 	add_child(code_complete_timer);
 	code_complete_timer->set_one_shot(true);
-	enable_complete_timer = EDITOR_DEF("text_editor/completion/enable_code_completion_delay", true);
-
 	code_complete_timer->set_wait_time(EDITOR_DEF("text_editor/completion/code_complete_delay", .3f));
 
+	error_line = 0;
+	error_column = 0;
+
+	// Error
+	ScrollContainer *scroll = memnew(ScrollContainer);
+	scroll->set_h_size_flags(SIZE_EXPAND_FILL);
+	scroll->set_v_size_flags(SIZE_EXPAND_FILL);
+	scroll->set_enable_v_scroll(false);
+	status_bar->add_child(scroll);
+
 	error = memnew(Label);
-	status_bar->add_child(error);
-	error->set_autowrap(true);
-	error->set_valign(Label::VALIGN_CENTER);
+	scroll->add_child(error);
+	error->set_v_size_flags(SIZE_EXPAND | SIZE_SHRINK_CENTER);
 	error->add_color_override("font_color", EditorNode::get_singleton()->get_gui_base()->get_color("error_color", "Editor"));
 	error->add_font_override("font", EditorNode::get_singleton()->get_gui_base()->get_font("status_source", "EditorFonts"));
-	error->set_h_size_flags(SIZE_EXPAND_FILL); //required for it to display, given now it's clipping contents, do not touch
+	error->set_mouse_filter(MOUSE_FILTER_STOP);
+	error->connect("gui_input", this, "_error_pressed");
 	find_replace_bar->connect("error", error, "set_text");
 
-	status_bar->add_child(memnew(Label)); //to keep the height if the other labels are not visible
-
-	warning_label = memnew(Label);
-	status_bar->add_child(warning_label);
-	warning_label->set_align(Label::ALIGN_RIGHT);
-	warning_label->set_valign(Label::VALIGN_CENTER);
-	warning_label->set_v_size_flags(SIZE_FILL);
-	warning_label->set_default_cursor_shape(CURSOR_POINTING_HAND);
-	warning_label->set_mouse_filter(MOUSE_FILTER_STOP);
-	warning_label->set_text(TTR("Warnings:"));
-	warning_label->add_font_override("font", EditorNode::get_singleton()->get_gui_base()->get_font("status_source", "EditorFonts"));
+	// Warnings
+	warning_button = memnew(ToolButton);
+	status_bar->add_child(warning_button);
+	warning_button->set_v_size_flags(SIZE_EXPAND | SIZE_SHRINK_CENTER);
+	warning_button->set_default_cursor_shape(CURSOR_POINTING_HAND);
+	warning_button->connect("pressed", this, "_warning_button_pressed");
+	warning_button->set_tooltip(TTR("Warnings"));
 
 	warning_count_label = memnew(Label);
 	status_bar->add_child(warning_count_label);
-	warning_count_label->set_valign(Label::VALIGN_CENTER);
-	warning_count_label->set_v_size_flags(SIZE_FILL);
-	warning_count_label->set_autowrap(true); // workaround to prevent resizing the label on each change, do not touch
-	warning_count_label->set_clip_text(true); // workaround to prevent resizing the label on each change, do not touch
-	warning_count_label->set_custom_minimum_size(Size2(40, 1) * EDSCALE);
+	warning_count_label->set_v_size_flags(SIZE_EXPAND | SIZE_SHRINK_CENTER);
 	warning_count_label->set_align(Label::ALIGN_RIGHT);
 	warning_count_label->set_default_cursor_shape(CURSOR_POINTING_HAND);
 	warning_count_label->set_mouse_filter(MOUSE_FILTER_STOP);
+	warning_count_label->set_tooltip(TTR("Warnings"));
+	warning_count_label->add_color_override("font_color", EditorNode::get_singleton()->get_gui_base()->get_color("warning_color", "Editor"));
 	warning_count_label->add_font_override("font", EditorNode::get_singleton()->get_gui_base()->get_font("status_source", "EditorFonts"));
-	warning_count_label->set_text("0");
+	warning_count_label->connect("gui_input", this, "_warning_label_gui_input");
 
-	Label *zoom_txt = memnew(Label);
-	status_bar->add_child(zoom_txt);
-	zoom_txt->set_align(Label::ALIGN_RIGHT);
-	zoom_txt->set_valign(Label::VALIGN_CENTER);
-	zoom_txt->set_v_size_flags(SIZE_FILL);
-	zoom_txt->set_text(TTR("Zoom:"));
-	zoom_txt->add_font_override("font", EditorNode::get_singleton()->get_gui_base()->get_font("status_source", "EditorFonts"));
+	is_warnings_panel_opened = false;
+	set_warning_nb(0);
 
-	zoom_nb = memnew(Label);
-	status_bar->add_child(zoom_nb);
-	zoom_nb->set_valign(Label::VALIGN_CENTER);
-	zoom_nb->set_v_size_flags(SIZE_FILL);
-	zoom_nb->set_autowrap(true); // workaround to prevent resizing the label on each change, do not touch
-	zoom_nb->set_clip_text(true); // workaround to prevent resizing the label on each change, do not touch
-	zoom_nb->set_custom_minimum_size(Size2(60, 1) * EDSCALE);
-	zoom_nb->set_align(Label::ALIGN_RIGHT);
-	zoom_nb->add_font_override("font", EditorNode::get_singleton()->get_gui_base()->get_font("status_source", "EditorFonts"));
-
-	Label *line_txt = memnew(Label);
-	status_bar->add_child(line_txt);
-	line_txt->set_align(Label::ALIGN_RIGHT);
-	line_txt->set_valign(Label::VALIGN_CENTER);
-	line_txt->set_v_size_flags(SIZE_FILL);
-	line_txt->set_text(TTR("Line:"));
-	line_txt->add_font_override("font", EditorNode::get_singleton()->get_gui_base()->get_font("status_source", "EditorFonts"));
-
-	line_nb = memnew(Label);
-	status_bar->add_child(line_nb);
-	line_nb->set_valign(Label::VALIGN_CENTER);
-	line_nb->set_v_size_flags(SIZE_FILL);
-	line_nb->set_autowrap(true); // workaround to prevent resizing the label on each change, do not touch
-	line_nb->set_clip_text(true); // workaround to prevent resizing the label on each change, do not touch
-	line_nb->set_custom_minimum_size(Size2(40, 1) * EDSCALE);
-	line_nb->set_align(Label::ALIGN_RIGHT);
-	line_nb->add_font_override("font", EditorNode::get_singleton()->get_gui_base()->get_font("status_source", "EditorFonts"));
-
-	Label *col_txt = memnew(Label);
-	status_bar->add_child(col_txt);
-	col_txt->set_align(Label::ALIGN_RIGHT);
-	col_txt->set_valign(Label::VALIGN_CENTER);
-	col_txt->set_v_size_flags(SIZE_FILL);
-	col_txt->set_text(TTR("Col:"));
-	col_txt->add_font_override("font", EditorNode::get_singleton()->get_gui_base()->get_font("status_source", "EditorFonts"));
-
-	col_nb = memnew(Label);
-	status_bar->add_child(col_nb);
-	col_nb->set_valign(Label::VALIGN_CENTER);
-	col_nb->set_v_size_flags(SIZE_FILL);
-	col_nb->set_autowrap(true); // workaround to prevent resizing the label on each change, do not touch
-	col_nb->set_clip_text(true); // workaround to prevent resizing the label on each change, do not touch
-	col_nb->set_custom_minimum_size(Size2(40, 1) * EDSCALE);
-	col_nb->set_align(Label::ALIGN_RIGHT);
-	col_nb->set("custom_constants/margin_right", 0);
-	col_nb->add_font_override("font", EditorNode::get_singleton()->get_gui_base()->get_font("status_source", "EditorFonts"));
+	// Line and column
+	line_and_col_txt = memnew(Label);
+	status_bar->add_child(line_and_col_txt);
+	line_and_col_txt->set_v_size_flags(SIZE_EXPAND | SIZE_SHRINK_CENTER);
+	line_and_col_txt->add_font_override("font", EditorNode::get_singleton()->get_gui_base()->get_font("status_source", "EditorFonts"));
+	line_and_col_txt->set_tooltip(TTR("Line and column numbers."));
+	line_and_col_txt->set_mouse_filter(MOUSE_FILTER_STOP);
 
 	text_editor->connect("gui_input", this, "_text_editor_gui_input");
 	text_editor->connect("cursor_changed", this, "_line_col_changed");
@@ -1346,7 +1357,6 @@ CodeTextEditor::CodeTextEditor() {
 
 	font_resize_val = 0;
 	font_size = EditorSettings::get_singleton()->get("interface/editor/code_font_size");
-	zoom_nb->set_text(itos(100 * font_size / (14 * EDSCALE)) + "%");
 	font_resize_timer = memnew(Timer);
 	add_child(font_resize_timer);
 	font_resize_timer->set_one_shot(true);

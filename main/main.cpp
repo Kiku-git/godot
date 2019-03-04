@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -53,11 +53,11 @@
 #include "drivers/register_driver_types.h"
 #include "main/app_icon.gen.h"
 #include "main/input_default.h"
+#include "main/main_timer_sync.h"
 #include "main/performance.h"
 #include "main/splash.gen.h"
 #include "main/splash_editor.gen.h"
 #include "main/tests/test_main.h"
-#include "main/timer_sync.h"
 #include "modules/register_module_types.h"
 #include "platform/register_platform_apis.h"
 #include "scene/main/scene_tree.h"
@@ -205,8 +205,8 @@ void finalize_physics() {
 void Main::print_help(const char *p_binary) {
 
 	print_line(String(VERSION_NAME) + " v" + get_full_version_string() + " - https://godotengine.org");
-	OS::get_singleton()->print("(c) 2007-2018 Juan Linietsky, Ariel Manzur.\n");
-	OS::get_singleton()->print("(c) 2014-2018 Godot Engine contributors.\n");
+	OS::get_singleton()->print("(c) 2007-2019 Juan Linietsky, Ariel Manzur.\n");
+	OS::get_singleton()->print("(c) 2014-2019 Godot Engine contributors.\n");
 	OS::get_singleton()->print("\n");
 	OS::get_singleton()->print("Usage: %s [options] [path to scene or 'project.godot' file]\n", p_binary);
 	OS::get_singleton()->print("\n");
@@ -394,7 +394,9 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	Vector<String> breakpoints;
 	bool use_custom_res = true;
 	bool force_res = false;
+#ifdef TOOLS_ENABLED
 	bool found_project = false;
+#endif
 
 	packed_data = PackedData::get_singleton();
 	if (!packed_data)
@@ -722,49 +724,9 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 		I = N;
 	}
 
-	if (globals->setup(project_path, main_pack, upwards) == OK) {
-		found_project = true;
-	} else {
-
-#ifdef TOOLS_ENABLED
-		editor = false;
-#else
-		OS::get_singleton()->print("Error: Could not load game path '%s'.\n", project_path.ascii().get_data());
-
-		goto error;
-#endif
-	}
-
-	GLOBAL_DEF("memory/limits/multithreaded_server/rid_pool_prealloc", 60);
-	GLOBAL_DEF("network/limits/debugger_stdout/max_chars_per_second", 2048);
-	GLOBAL_DEF("network/limits/debugger_stdout/max_messages_per_frame", 10);
-	GLOBAL_DEF("network/limits/debugger_stdout/max_errors_per_frame", 10);
-
-	if (debug_mode == "remote") {
-
-		ScriptDebuggerRemote *sdr = memnew(ScriptDebuggerRemote);
-		uint16_t debug_port = 6007;
-		if (debug_host.find(":") != -1) {
-			int sep_pos = debug_host.find_last(":");
-			debug_port = debug_host.substr(sep_pos + 1, debug_host.length()).to_int();
-			debug_host = debug_host.substr(0, sep_pos);
-		}
-		Error derr = sdr->connect_to_host(debug_host, debug_port);
-
-		if (derr != OK) {
-			memdelete(sdr);
-		} else {
-			script_debugger = sdr;
-			sdr->set_allow_focus_steal_pid(allow_focus_steal_pid);
-		}
-	} else if (debug_mode == "local") {
-
-		script_debugger = memnew(ScriptDebuggerLocal);
-		OS::get_singleton()->initialize_debugging();
-	}
-
+	// Network file system needs to be configured before globals, since globals are based on the
+	// 'project.godot' file which will only be available through the network if this is enabled
 	FileAccessNetwork::configure();
-
 	if (remotefs != "") {
 
 		file_access_network_client = memnew(FileAccessNetworkClient);
@@ -783,6 +745,54 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 		}
 
 		FileAccess::make_default<FileAccessNetwork>(FileAccess::ACCESS_RESOURCES);
+	}
+
+	if (globals->setup(project_path, main_pack, upwards) == OK) {
+#ifdef TOOLS_ENABLED
+		found_project = true;
+#endif
+	} else {
+
+#ifdef TOOLS_ENABLED
+		editor = false;
+#else
+		String error_msg = "Error: Could not load game data at path '" + project_path + "'. Is the .pck file missing?\n";
+		OS::get_singleton()->print("%s", error_msg.ascii().get_data());
+		OS::get_singleton()->alert(error_msg);
+
+		goto error;
+#endif
+	}
+
+	GLOBAL_DEF("memory/limits/multithreaded_server/rid_pool_prealloc", 60);
+	ProjectSettings::get_singleton()->set_custom_property_info("memory/limits/multithreaded_server/rid_pool_prealloc", PropertyInfo(Variant::INT, "memory/limits/multithreaded_server/rid_pool_prealloc", PROPERTY_HINT_RANGE, "0,500,1")); // No negative and limit to 500 due to crashes
+	GLOBAL_DEF("network/limits/debugger_stdout/max_chars_per_second", 2048);
+	ProjectSettings::get_singleton()->set_custom_property_info("network/limits/debugger_stdout/max_chars_per_second", PropertyInfo(Variant::INT, "network/limits/debugger_stdout/max_chars_per_second", PROPERTY_HINT_RANGE, "0, 4096, 1, or_greater"));
+	GLOBAL_DEF("network/limits/debugger_stdout/max_messages_per_frame", 10);
+	ProjectSettings::get_singleton()->set_custom_property_info("network/limits/debugger_stdout/max_messages_per_frame", PropertyInfo(Variant::INT, "network/limits/debugger_stdout/max_messages_per_frame", PROPERTY_HINT_RANGE, "0, 20, 1, or_greater"));
+	GLOBAL_DEF("network/limits/debugger_stdout/max_errors_per_frame", 10);
+	ProjectSettings::get_singleton()->set_custom_property_info("network/limits/debugger_stdout/max_errors_per_frame", PropertyInfo(Variant::INT, "network/limits/debugger_stdout/max_errors_per_frame", PROPERTY_HINT_RANGE, "0, 20, 1, or_greater"));
+
+	if (debug_mode == "remote") {
+
+		ScriptDebuggerRemote *sdr = memnew(ScriptDebuggerRemote);
+		uint16_t debug_port = 6007;
+		if (debug_host.find(":") != -1) {
+			int sep_pos = debug_host.find_last(":");
+			debug_port = debug_host.substr(sep_pos + 1, debug_host.length()).to_int();
+			debug_host = debug_host.substr(0, sep_pos);
+		}
+		Error derr = sdr->connect_to_host(debug_host, debug_port);
+
+		if (derr != OK) {
+			memdelete(sdr);
+		} else {
+			script_debugger = sdr;
+		}
+	} else if (debug_mode == "local") {
+
+		script_debugger = memnew(ScriptDebuggerLocal);
+		OS::get_singleton()->initialize_debugging();
 	}
 	if (script_debugger) {
 		//there is a debugger, parse breakpoints
@@ -811,6 +821,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	GLOBAL_DEF("logging/file_logging/enable_file_logging", false);
 	GLOBAL_DEF("logging/file_logging/log_path", "user://logs/log.txt");
 	GLOBAL_DEF("logging/file_logging/max_log_files", 10);
+	ProjectSettings::get_singleton()->set_custom_property_info("logging/file_logging/max_log_files", PropertyInfo(Variant::INT, "logging/file_logging/max_log_files", PROPERTY_HINT_RANGE, "0,20,1,or_greater")); //no negative numbers
 	if (FileAccess::get_create_func(FileAccess::ACCESS_USERDATA) && GLOBAL_GET("logging/file_logging/enable_file_logging")) {
 		String base_path = GLOBAL_GET("logging/file_logging/log_path");
 		int max_files = GLOBAL_GET("logging/file_logging/max_log_files");
@@ -872,6 +883,9 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	GLOBAL_DEF("rendering/quality/driver/driver_fallback", "Best");
 	ProjectSettings::get_singleton()->set_custom_property_info("rendering/quality/driver/driver_fallback", PropertyInfo(Variant::STRING, "rendering/quality/driver/driver_fallback", PROPERTY_HINT_ENUM, "Best,Never"));
 
+	// Assigning here even though it's GLES2-specific, to be sure that it appears in docs
+	GLOBAL_DEF("rendering/quality/2d/gles2_use_nvidia_rect_flicker_workaround", false);
+
 	GLOBAL_DEF("display/window/size/width", 1024);
 	ProjectSettings::get_singleton()->set_custom_property_info("display/window/size/width", PropertyInfo(Variant::INT, "display/window/size/width", PROPERTY_HINT_RANGE, "0,7680,or_greater")); // 8K resolution
 	GLOBAL_DEF("display/window/size/height", 600);
@@ -911,13 +925,12 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 		OS::get_singleton()->_allow_hidpi = GLOBAL_DEF("display/window/dpi/allow_hidpi", false);
 	}
 
-	OS::get_singleton()->_allow_layered = GLOBAL_DEF("display/window/allow_per_pixel_transparency", false);
-
 	video_mode.use_vsync = GLOBAL_DEF("display/window/vsync/use_vsync", true);
 	OS::get_singleton()->_use_vsync = video_mode.use_vsync;
 
-	video_mode.layered = GLOBAL_DEF("display/window/per_pixel_transparency", false);
-	video_mode.layered_splash = GLOBAL_DEF("display/window/per_pixel_transparency_splash", false);
+	OS::get_singleton()->_allow_layered = GLOBAL_DEF("display/window/per_pixel_transparency/allowed", false);
+	video_mode.layered = GLOBAL_DEF("display/window/per_pixel_transparency/enabled", false);
+	video_mode.layered_splash = GLOBAL_DEF("display/window/per_pixel_transparency/splash", false);
 
 	GLOBAL_DEF("rendering/quality/intended_usage/framebuffer_allocation", 2);
 	GLOBAL_DEF("rendering/quality/intended_usage/framebuffer_allocation.mobile", 3);
@@ -1001,6 +1014,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	Engine::get_singleton()->set_iterations_per_second(GLOBAL_DEF("physics/common/physics_fps", 60));
 	Engine::get_singleton()->set_physics_jitter_fix(GLOBAL_DEF("physics/common/physics_jitter_fix", 0.5));
 	Engine::get_singleton()->set_target_fps(GLOBAL_DEF("debug/settings/fps/force_fps", 0));
+	ProjectSettings::get_singleton()->set_custom_property_info("debug/settings/fps/force_fps", PropertyInfo(Variant::INT, "debug/settings/fps/force_fps", PROPERTY_HINT_RANGE, "0,120,1,or_greater"));
 
 	GLOBAL_DEF("debug/settings/stdout/print_fps", false);
 
@@ -1009,16 +1023,16 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 
 	if (frame_delay == 0) {
 		frame_delay = GLOBAL_DEF("application/run/frame_delay_msec", 0);
+		ProjectSettings::get_singleton()->set_custom_property_info("application/run/frame_delay_msec", PropertyInfo(Variant::INT, "application/run/frame_delay_msec", PROPERTY_HINT_RANGE, "0,100,1,or_greater")); // No negative numbers
 	}
 
 	OS::get_singleton()->set_low_processor_usage_mode(GLOBAL_DEF("application/run/low_processor_mode", false));
 	OS::get_singleton()->set_low_processor_usage_mode_sleep_usec(GLOBAL_DEF("application/run/low_processor_mode_sleep_usec", 8000));
+	ProjectSettings::get_singleton()->set_custom_property_info("application/run/low_processor_mode_sleep_usec", PropertyInfo(Variant::INT, "application/run/low_processor_mode_sleep_usec", PROPERTY_HINT_RANGE, "0,33200,1,or_greater")); // No negative numbers
 
 	Engine::get_singleton()->set_frame_delay(frame_delay);
 
 	message_queue = memnew(MessageQueue);
-
-	ProjectSettings::get_singleton()->register_global_defaults();
 
 	if (p_second_phase)
 		return setup2();
@@ -1114,6 +1128,10 @@ Error Main::setup2(Thread::ID p_main_tid_override) {
 		OS::get_singleton()->set_window_always_on_top(true);
 	}
 
+	if (allow_focus_steal_pid) {
+		OS::get_singleton()->enable_for_stealing_focus(allow_focus_steal_pid);
+	}
+
 	register_server_types();
 
 	MAIN_PRINT("Main: Load Remaps");
@@ -1132,8 +1150,8 @@ Error Main::setup2(Thread::ID p_main_tid_override) {
 
 		if (boot_logo_path != String()) {
 			boot_logo.instance();
-			Error err = ImageLoader::load_image(boot_logo_path, boot_logo);
-			if (err)
+			Error load_err = ImageLoader::load_image(boot_logo_path, boot_logo);
+			if (load_err)
 				ERR_PRINTS("Non-existing or invalid boot splash at: " + boot_logo_path + ". Loading default splash.");
 		}
 
@@ -1219,6 +1237,7 @@ Error Main::setup2(Thread::ID p_main_tid_override) {
 
 	register_driver_types();
 
+	// This loads global classes, so it must happen before custom loaders and savers are registered
 	ScriptServer::init_languages();
 
 	MAIN_PRINT("Main: Load Translations");
@@ -1260,7 +1279,9 @@ bool Main::start() {
 	bool hasicon = false;
 	String doc_tool;
 	List<String> removal_docs;
+#ifdef TOOLS_ENABLED
 	bool doc_base = true;
+#endif
 	String game_path;
 	String script;
 	String test;
@@ -1273,9 +1294,11 @@ bool Main::start() {
 	List<String> args = OS::get_singleton()->get_cmdline_args();
 	for (int i = 0; i < args.size(); i++) {
 		//parameters that do not have an argument to the right
-		if (args[i] == "--no-docbase") {
-			doc_base = false;
+		if (args[i] == "--check-only") {
+			check_only = true;
 #ifdef TOOLS_ENABLED
+		} else if (args[i] == "--no-docbase") {
+			doc_base = false;
 		} else if (args[i] == "-e" || args[i] == "--editor") {
 			editor = true;
 		} else if (args[i] == "-p" || args[i] == "--project-manager") {
@@ -1283,8 +1306,6 @@ bool Main::start() {
 #endif
 		} else if (args[i].length() && args[i][0] != '-' && game_path == "") {
 			game_path = args[i];
-		} else if (args[i] == "--check-only") {
-			check_only = true;
 		}
 		//parameters that have an argument to the right
 		else if (i < (args.size() - 1)) {
@@ -1478,6 +1499,9 @@ bool Main::start() {
 		}
 #endif
 
+		ResourceLoader::add_custom_loaders();
+		ResourceSaver::add_custom_savers();
+
 		if (!project_manager && !editor) { // game
 			if (game_path != "" || script != "") {
 				//autoload
@@ -1527,8 +1551,8 @@ bool Main::start() {
 						Ref<PackedScene> ps = res;
 						n = ps->instance();
 					} else if (res->is_class("Script")) {
-						Ref<Script> s = res;
-						StringName ibt = s->get_instance_base_type();
+						Ref<Script> script_res = res;
+						StringName ibt = script_res->get_instance_base_type();
 						bool valid_type = ClassDB::is_parent_class(ibt, "Node");
 						ERR_EXPLAIN("Script does not inherit a Node: " + path);
 						ERR_CONTINUE(!valid_type);
@@ -1539,7 +1563,7 @@ bool Main::start() {
 						ERR_CONTINUE(obj == NULL);
 
 						n = Object::cast_to<Node>(obj);
-						n->set_script(s.get_ref_ptr());
+						n->set_script(script_res.get_ref_ptr());
 					}
 
 					ERR_EXPLAIN("Path in autoload not a node or script: " + path);
@@ -1588,7 +1612,7 @@ bool Main::start() {
 			String stretch_mode = GLOBAL_DEF("display/window/stretch/mode", "disabled");
 			String stretch_aspect = GLOBAL_DEF("display/window/stretch/aspect", "ignore");
 			Size2i stretch_size = Size2(GLOBAL_DEF("display/window/size/width", 0), GLOBAL_DEF("display/window/size/height", 0));
-			real_t stretch_shrink = GLOBAL_DEF("display/window/stretch/shrink", 1.0f);
+			real_t stretch_shrink = GLOBAL_DEF("display/window/stretch/shrink", 1.0);
 
 			SceneTree::StretchMode sml_sm = SceneTree::STRETCH_MODE_DISABLED;
 			if (stretch_mode == "2d")
@@ -1640,8 +1664,8 @@ bool Main::start() {
 			ProjectSettings::get_singleton()->set_custom_property_info("display/window/stretch/mode", PropertyInfo(Variant::STRING, "display/window/stretch/mode", PROPERTY_HINT_ENUM, "disabled,2d,viewport"));
 			GLOBAL_DEF("display/window/stretch/aspect", "ignore");
 			ProjectSettings::get_singleton()->set_custom_property_info("display/window/stretch/aspect", PropertyInfo(Variant::STRING, "display/window/stretch/aspect", PROPERTY_HINT_ENUM, "ignore,keep,keep_width,keep_height,expand"));
-			GLOBAL_DEF("display/window/stretch/shrink", 1);
-			ProjectSettings::get_singleton()->set_custom_property_info("display/window/stretch/shrink", PropertyInfo(Variant::STRING, "display/window/stretch/shrink", PROPERTY_HINT_RANGE, "1,8,1"));
+			GLOBAL_DEF("display/window/stretch/shrink", 1.0);
+			ProjectSettings::get_singleton()->set_custom_property_info("display/window/stretch/shrink", PropertyInfo(Variant::REAL, "display/window/stretch/shrink", PROPERTY_HINT_RANGE, "1.0,8.0,0.1"));
 			sml->set_auto_accept_quit(GLOBAL_DEF("application/config/auto_accept_quit", true));
 			sml->set_quit_on_go_back(GLOBAL_DEF("application/config/quit_on_go_back", true));
 			GLOBAL_DEF("gui/common/snap_controls_to_pixels", true);
@@ -1686,12 +1710,17 @@ bool Main::start() {
 #ifdef TOOLS_ENABLED
 			if (editor) {
 
-				Error serr = editor_node->load_scene(local_game_path);
-				if (serr != OK)
-					ERR_PRINT("Failed to load scene");
+				if (game_path != GLOBAL_GET("application/run/main_scene") || !editor_node->has_scenes_in_session()) {
+					Error serr = editor_node->load_scene(local_game_path);
+					if (serr != OK)
+						ERR_PRINT("Failed to load scene");
+				}
 				OS::get_singleton()->set_context(OS::CONTEXT_EDITOR);
 			}
 #endif
+			if (!editor) {
+				OS::get_singleton()->set_context(OS::CONTEXT_ENGINE);
+			}
 		}
 
 		if (!project_manager && !editor) { // game
@@ -1768,12 +1797,21 @@ uint64_t Main::target_ticks = 0;
 uint32_t Main::frames = 0;
 uint32_t Main::frame = 0;
 bool Main::force_redraw_requested = false;
+int Main::iterating = 0;
+bool Main::is_iterating() {
+	return iterating > 0;
+}
 
 // For performance metrics
 static uint64_t physics_process_max = 0;
 static uint64_t idle_process_max = 0;
 
 bool Main::iteration() {
+
+	//for now do not error on this
+	//ERR_FAIL_COND_V(iterating, false);
+
+	iterating++;
 
 	uint64_t ticks = OS::get_singleton()->get_ticks_usec();
 	Engine::get_singleton()->_frame_ticks = ticks;
@@ -1902,6 +1940,8 @@ bool Main::iteration() {
 		frames = 0;
 	}
 
+	iterating--;
+
 	if (fixed_fps != -1)
 		return exit;
 
@@ -1914,7 +1954,7 @@ bool Main::iteration() {
 	}
 
 	int target_fps = Engine::get_singleton()->get_target_fps();
-	if (target_fps > 0) {
+	if (target_fps > 0 && !Engine::get_singleton()->is_editor_hint()) {
 		uint64_t time_step = 1000000L / target_fps;
 		target_ticks += time_step;
 		uint64_t current_ticks = OS::get_singleton()->get_ticks_usec();
@@ -1945,10 +1985,12 @@ void Main::force_redraw() {
  * so that the engine closes cleanly without leaking memory or crashing.
  * The order matters as some of those steps are linked with each other.
  */
-
 void Main::cleanup() {
 
 	ERR_FAIL_COND(!_start_success);
+
+	ResourceLoader::remove_custom_loaders();
+	ResourceSaver::remove_custom_savers();
 
 	message_queue->flush();
 	memdelete(message_queue);
@@ -1980,6 +2022,8 @@ void Main::cleanup() {
 		// cleanup now before we pull the rug from underneath...
 		memdelete(arvr_server);
 	}
+
+	ImageLoader::cleanup();
 
 	unregister_driver_types();
 	unregister_module_types();

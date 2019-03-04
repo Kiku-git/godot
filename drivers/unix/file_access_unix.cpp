@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -246,7 +246,7 @@ void FileAccessUnix::store_8(uint8_t p_dest) {
 
 void FileAccessUnix::store_buffer(const uint8_t *p_src, int p_length) {
 	ERR_FAIL_COND(!f);
-	ERR_FAIL_COND(fwrite(p_src, 1, p_length, f) != p_length);
+	ERR_FAIL_COND((int)fwrite(p_src, 1, p_length, f) != p_length);
 }
 
 bool FileAccessUnix::file_exists(const String &p_path) {
@@ -309,11 +309,10 @@ FileAccess *FileAccessUnix::create_libc() {
 
 CloseNotificationFunc FileAccessUnix::close_notification_func = NULL;
 
-FileAccessUnix::FileAccessUnix() {
-
-	f = NULL;
-	flags = 0;
-	last_error = OK;
+FileAccessUnix::FileAccessUnix() :
+		f(NULL),
+		flags(0),
+		last_error(OK) {
 }
 
 FileAccessUnix::~FileAccessUnix() {

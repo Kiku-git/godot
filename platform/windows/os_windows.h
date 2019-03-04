@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -30,14 +30,17 @@
 
 #ifndef OS_WINDOWS_H
 #define OS_WINDOWS_H
-#include "context_gl_win.h"
+
+#include "context_gl_windows.h"
 #include "core/os/input.h"
 #include "core/os/os.h"
 #include "core/project_settings.h"
-#include "crash_handler_win.h"
-#include "drivers/rtaudio/audio_driver_rtaudio.h"
+#include "crash_handler_windows.h"
+#include "drivers/unix/ip_unix.h"
 #include "drivers/wasapi/audio_driver_wasapi.h"
-#include "drivers/winmidi/win_midi.h"
+#include "drivers/winmidi/midi_driver_winmidi.h"
+#include "key_mapping_windows.h"
+#include "main/input_default.h"
 #include "power_windows.h"
 #include "servers/audio_server.h"
 #include "servers/visual/rasterizer.h"
@@ -45,9 +48,6 @@
 #ifdef XAUDIO2_ENABLED
 #include "drivers/xaudio2/audio_driver_xaudio2.h"
 #endif
-#include "drivers/unix/ip_unix.h"
-#include "key_mapping_win.h"
-#include "main/input_default.h"
 
 #include <fcntl.h>
 #include <io.h>
@@ -86,13 +86,14 @@ class OS_Windows : public OS {
 	int old_x, old_y;
 	Point2i center;
 #if defined(OPENGL_ENABLED)
-	ContextGL_Win *gl_context;
+	ContextGL_Windows *gl_context;
 #endif
 	VisualServer *visual_server;
 	int pressrc;
 	HDC hDC; // Private GDI Device Context
 	HINSTANCE hInstance; // Holds The Instance Of The Application
 	HWND hWnd;
+	Point2 last_pos;
 
 	HBITMAP hBitmap; //DIB section for layered window
 	uint8_t *dib_data;
@@ -126,6 +127,7 @@ class OS_Windows : public OS {
 	bool window_has_focus;
 	uint32_t last_button_state;
 	bool use_raw_input;
+	bool drop_events;
 
 	HCURSOR cursors[CURSOR_MAX] = { NULL };
 	CursorShape cursor_shape;
@@ -140,9 +142,6 @@ class OS_Windows : public OS {
 #ifdef WASAPI_ENABLED
 	AudioDriverWASAPI driver_wasapi;
 #endif
-#ifdef RTAUDIO_ENABLED
-	AudioDriverRtAudio driver_rtaudio;
-#endif
 #ifdef XAUDIO2_ENABLED
 	AudioDriverXAudio2 driver_xaudio2;
 #endif
@@ -156,6 +155,8 @@ class OS_Windows : public OS {
 	void _touch_event(bool p_pressed, float p_x, float p_y, int idx);
 
 	void _update_window_style(bool repaint = true);
+
+	void _set_mouse_mode_impl(MouseMode p_mode);
 
 	// functions used by main to initialize/deinitialize the OS
 protected:
@@ -197,6 +198,7 @@ public:
 
 	virtual void warp_mouse_position(const Point2 &p_to);
 	virtual Point2 get_mouse_position() const;
+	void update_real_mouse_position();
 	virtual int get_mouse_button_state() const;
 	virtual void set_window_title(const String &p_title);
 
@@ -251,6 +253,7 @@ public:
 	virtual TimeZoneInfo get_time_zone_info() const;
 	virtual uint64_t get_unix_time() const;
 	virtual uint64_t get_system_time_secs() const;
+	virtual uint64_t get_system_time_msecs() const;
 
 	virtual bool can_draw() const;
 	virtual Error set_cwd(const String &p_cwd);
@@ -264,6 +267,7 @@ public:
 
 	virtual bool has_environment(const String &p_var) const;
 	virtual String get_environment(const String &p_var) const;
+	virtual bool set_environment(const String &p_var, const String &p_value) const;
 
 	virtual void set_clipboard(const String &p_text);
 	virtual String get_clipboard() const;
@@ -326,6 +330,8 @@ public:
 	void force_process_input();
 
 	virtual Error move_to_trash(const String &p_path);
+
+	virtual void process_and_drop_events();
 
 	OS_Windows(HINSTANCE _hInstance);
 	~OS_Windows();

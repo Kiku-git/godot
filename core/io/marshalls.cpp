@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -55,9 +55,8 @@ ObjectID EncodedObjectAsID::get_object_id() const {
 	return id;
 }
 
-EncodedObjectAsID::EncodedObjectAsID() {
-
-	id = 0;
+EncodedObjectAsID::EncodedObjectAsID() :
+		id(0) {
 }
 
 #define ENCODE_MASK 0xFF
@@ -890,11 +889,11 @@ Error encode_variant(const Variant &p_variant, uint8_t *r_buffer, int &r_len, bo
 			if (buf) {
 				encode_uint32(uint32_t(np.get_name_count()) | 0x80000000, buf); //for compatibility with the old format
 				encode_uint32(np.get_subname_count(), buf + 4);
-				uint32_t flags = 0;
+				uint32_t np_flags = 0;
 				if (np.is_absolute())
-					flags |= 1;
+					np_flags |= 1;
 
-				encode_uint32(flags, buf + 8);
+				encode_uint32(np_flags, buf + 8);
 
 				buf += 12;
 			}

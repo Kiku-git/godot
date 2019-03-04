@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -52,7 +52,7 @@ MonoObject *godot_icall_GD_bytes2var(MonoArray *p_bytes) {
 	return GDMonoMarshal::variant_to_mono_object(ret);
 }
 
-MonoObject *godot_icall_GD_convert(MonoObject *p_what, int p_type) {
+MonoObject *godot_icall_GD_convert(MonoObject *p_what, int32_t p_type) {
 	Variant what = GDMonoMarshal::mono_object_to_variant(p_what);
 	const Variant *args[1] = { &what };
 	Variant::CallError ce;
@@ -65,7 +65,7 @@ int godot_icall_GD_hash(MonoObject *p_var) {
 	return GDMonoMarshal::mono_object_to_variant(p_var).hash();
 }
 
-MonoObject *godot_icall_GD_instance_from_id(int p_instance_id) {
+MonoObject *godot_icall_GD_instance_from_id(uint64_t p_instance_id) {
 	return GDMonoUtils::unmanaged_get_managed(ObjectDB::get_instance(p_instance_id));
 }
 
@@ -115,7 +115,29 @@ void godot_icall_GD_printt(MonoArray *p_what) {
 	print_line(str);
 }
 
-void godot_icall_GD_seed(int p_seed) {
+double godot_icall_GD_randf() {
+	return Math::randf();
+}
+
+uint32_t godot_icall_GD_randi() {
+	return Math::rand();
+}
+
+void godot_icall_GD_randomize() {
+	Math::randomize();
+}
+
+double godot_icall_GD_rand_range(double from, double to) {
+	return Math::random(from, to);
+}
+
+uint32_t godot_icall_GD_rand_seed(uint64_t seed, uint64_t *newSeed) {
+	int ret = Math::rand_from_seed(&seed);
+	*newSeed = seed;
+	return ret;
+}
+
+void godot_icall_GD_seed(uint64_t p_seed) {
 	Math::seed(p_seed);
 }
 
@@ -157,6 +179,14 @@ bool godot_icall_GD_type_exists(MonoString *p_type) {
 	return ClassDB::class_exists(GDMonoMarshal::mono_string_to_godot(p_type));
 }
 
+void godot_icall_GD_pusherror(MonoString *p_str) {
+	ERR_PRINTS(GDMonoMarshal::mono_string_to_godot(p_str));
+}
+
+void godot_icall_GD_pushwarning(MonoString *p_str) {
+	WARN_PRINTS(GDMonoMarshal::mono_string_to_godot(p_str));
+}
+
 MonoArray *godot_icall_GD_var2bytes(MonoObject *p_var) {
 	Variant var = GDMonoMarshal::mono_object_to_variant(p_var);
 
@@ -186,11 +216,18 @@ void godot_register_gd_icalls() {
 	mono_add_internal_call("Godot.GD::godot_icall_GD_convert", (void *)godot_icall_GD_convert);
 	mono_add_internal_call("Godot.GD::godot_icall_GD_hash", (void *)godot_icall_GD_hash);
 	mono_add_internal_call("Godot.GD::godot_icall_GD_instance_from_id", (void *)godot_icall_GD_instance_from_id);
+	mono_add_internal_call("Godot.GD::godot_icall_GD_pusherror", (void *)godot_icall_GD_pusherror);
+	mono_add_internal_call("Godot.GD::godot_icall_GD_pushwarning", (void *)godot_icall_GD_pushwarning);
 	mono_add_internal_call("Godot.GD::godot_icall_GD_print", (void *)godot_icall_GD_print);
 	mono_add_internal_call("Godot.GD::godot_icall_GD_printerr", (void *)godot_icall_GD_printerr);
 	mono_add_internal_call("Godot.GD::godot_icall_GD_printraw", (void *)godot_icall_GD_printraw);
 	mono_add_internal_call("Godot.GD::godot_icall_GD_prints", (void *)godot_icall_GD_prints);
 	mono_add_internal_call("Godot.GD::godot_icall_GD_printt", (void *)godot_icall_GD_printt);
+	mono_add_internal_call("Godot.GD::godot_icall_GD_randf", (void *)godot_icall_GD_randf);
+	mono_add_internal_call("Godot.GD::godot_icall_GD_randi", (void *)godot_icall_GD_randi);
+	mono_add_internal_call("Godot.GD::godot_icall_GD_randomize", (void *)godot_icall_GD_randomize);
+	mono_add_internal_call("Godot.GD::godot_icall_GD_rand_range", (void *)godot_icall_GD_rand_range);
+	mono_add_internal_call("Godot.GD::godot_icall_GD_rand_seed", (void *)godot_icall_GD_rand_seed);
 	mono_add_internal_call("Godot.GD::godot_icall_GD_seed", (void *)godot_icall_GD_seed);
 	mono_add_internal_call("Godot.GD::godot_icall_GD_str", (void *)godot_icall_GD_str);
 	mono_add_internal_call("Godot.GD::godot_icall_GD_str2var", (void *)godot_icall_GD_str2var);

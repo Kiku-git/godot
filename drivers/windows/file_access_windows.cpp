@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -114,7 +114,7 @@ Error FileAccessWindows::_open(const String &p_path, int p_mode_flags) {
 		path = path + ".tmp";
 	}
 
-	f = _wfopen(path.c_str(), mode_string);
+	_wfopen_s(&f, path.c_str(), mode_string);
 
 	if (f == NULL) {
 		last_error = ERR_FILE_CANT_OPEN;
@@ -278,7 +278,7 @@ bool FileAccessWindows::file_exists(const String &p_name) {
 	FILE *g;
 	//printf("opening file %s\n", p_fname.c_str());
 	String filename = fix_path(p_name);
-	g = _wfopen(filename.c_str(), L"rb");
+	_wfopen_s(&g, filename.c_str(), L"rb");
 	if (g == NULL) {
 
 		return false;
@@ -307,11 +307,10 @@ uint64_t FileAccessWindows::_get_modified_time(const String &p_file) {
 	}
 }
 
-FileAccessWindows::FileAccessWindows() {
-
-	f = NULL;
-	flags = 0;
-	last_error = OK;
+FileAccessWindows::FileAccessWindows() :
+		f(NULL),
+		flags(0),
+		last_error(OK) {
 }
 FileAccessWindows::~FileAccessWindows() {
 

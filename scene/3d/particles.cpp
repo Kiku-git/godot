@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -29,6 +29,9 @@
 /*************************************************************************/
 
 #include "particles.h"
+
+#include "core/os/os.h"
+#include "scene/resources/particles_material.h"
 
 #include "servers/visual_server.h"
 
@@ -223,18 +226,34 @@ bool Particles::get_fractional_delta() const {
 
 String Particles::get_configuration_warning() const {
 
+	if (OS::get_singleton()->get_current_video_driver() == OS::VIDEO_DRIVER_GLES2) {
+		return TTR("GPU-based particles are not supported by the GLES2 video driver.\nUse the CPUParticles node instead. You can use the \"Convert to CPUParticles\" option for this purpose.");
+	}
+
 	String warnings;
 
 	bool meshes_found = false;
+	bool anim_material_found = false;
 
 	for (int i = 0; i < draw_passes.size(); i++) {
 		if (draw_passes[i].is_valid()) {
 			meshes_found = true;
-			break;
+			for (int j = 0; j < draw_passes[i]->get_surface_count(); j++) {
+				anim_material_found = Object::cast_to<ShaderMaterial>(draw_passes[i]->surface_get_material(j).ptr()) != NULL;
+				SpatialMaterial *spat = Object::cast_to<SpatialMaterial>(draw_passes[i]->surface_get_material(j).ptr());
+				anim_material_found = anim_material_found || (spat && spat->get_billboard_mode() == SpatialMaterial::BILLBOARD_PARTICLES);
+			}
+			if (meshes_found && anim_material_found) break;
 		}
 	}
 
+	anim_material_found = anim_material_found || Object::cast_to<ShaderMaterial>(get_material_override().ptr()) != NULL;
+	SpatialMaterial *spat = Object::cast_to<SpatialMaterial>(get_material_override().ptr());
+	anim_material_found = anim_material_found || (spat && spat->get_billboard_mode() == SpatialMaterial::BILLBOARD_PARTICLES);
+
 	if (!meshes_found) {
+		if (warnings != String())
+			warnings += "\n";
 		warnings += "- " + TTR("Nothing is visible because meshes have not been assigned to draw passes.");
 	}
 
@@ -242,6 +261,15 @@ String Particles::get_configuration_warning() const {
 		if (warnings != String())
 			warnings += "\n";
 		warnings += "- " + TTR("A material to process the particles is not assigned, so no behavior is imprinted.");
+	} else {
+		const ParticlesMaterial *process = Object::cast_to<ParticlesMaterial>(process_material.ptr());
+		if (!anim_material_found && process &&
+				(process->get_param(ParticlesMaterial::PARAM_ANIM_SPEED) != 0.0 || process->get_param(ParticlesMaterial::PARAM_ANIM_OFFSET) != 0.0 ||
+						process->get_param_texture(ParticlesMaterial::PARAM_ANIM_SPEED).is_valid() || process->get_param_texture(ParticlesMaterial::PARAM_ANIM_OFFSET).is_valid())) {
+			if (warnings != String())
+				warnings += "\n";
+			warnings += "- " + TTR("Particles animation requires the usage of a SpatialMaterial with \"Billboard Particles\" enabled.");
+		}
 	}
 
 	return warnings;
@@ -326,7 +354,7 @@ void Particles::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "emitting"), "set_emitting", "is_emitting");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "amount", PROPERTY_HINT_EXP_RANGE, "1,1000000,1"), "set_amount", "get_amount");
 	ADD_GROUP("Time", "");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "lifetime", PROPERTY_HINT_EXP_RANGE, "0.01,600.0,0.01"), "set_lifetime", "get_lifetime");
+	ADD_PROPERTY(PropertyInfo(Variant::REAL, "lifetime", PROPERTY_HINT_EXP_RANGE, "0.01,600.0,0.01,or_greater"), "set_lifetime", "get_lifetime");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "one_shot"), "set_one_shot", "get_one_shot");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "preprocess", PROPERTY_HINT_EXP_RANGE, "0.00,600.0,0.01"), "set_pre_process_time", "get_pre_process_time");
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "speed_scale", PROPERTY_HINT_RANGE, "0,64,0.01"), "set_speed_scale", "get_speed_scale");

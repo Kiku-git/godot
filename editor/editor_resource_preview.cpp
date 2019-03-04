@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -155,10 +155,11 @@ void EditorResourcePreview::_generate_preview(Ref<ImageTexture> &r_texture, Ref<
 		r_texture = generated;
 
 		if (r_texture.is_valid() && preview_generators[i]->should_generate_small_preview()) {
-			int small_thumbnail_size = EditorNode::get_singleton()->get_theme_base()->get_icon("Object", "EditorIcons")->get_width(); // Kind of a workaround to retreive the default icon size
+			int small_thumbnail_size = EditorNode::get_singleton()->get_theme_base()->get_icon("Object", "EditorIcons")->get_width(); // Kind of a workaround to retrieve the default icon size
 			small_thumbnail_size *= EDSCALE;
 
 			Ref<Image> small_image = r_texture->get_data();
+			small_image = small_image->duplicate();
 			small_image->resize(small_thumbnail_size, small_thumbnail_size, Image::INTERPOLATE_CUBIC);
 			r_small_texture.instance();
 			r_small_texture->create_from_image(small_image);
@@ -312,6 +313,8 @@ void EditorResourcePreview::_thread() {
 			preview_mutex->unlock();
 		}
 	}
+
+	exited = true;
 }
 
 void EditorResourcePreview::queue_edited_resource_preview(const Ref<Resource> &p_res, Object *p_receiver, const StringName &p_receiver_func, const Variant &p_userdata) {
@@ -326,7 +329,7 @@ void EditorResourcePreview::queue_edited_resource_preview(const Ref<Resource> &p
 	if (cache.has(path_id) && cache[path_id].last_hash == p_res->hash_edited_version()) {
 
 		cache[path_id].order = order++;
-		p_receiver->call_deferred(p_receiver_func, path_id, cache[path_id].preview, cache[path_id].small_preview, p_userdata);
+		p_receiver->call(p_receiver_func, path_id, cache[path_id].preview, cache[path_id].small_preview, p_userdata);
 		preview_mutex->unlock();
 		return;
 	}
@@ -351,7 +354,7 @@ void EditorResourcePreview::queue_resource_preview(const String &p_path, Object 
 	preview_mutex->lock();
 	if (cache.has(p_path)) {
 		cache[p_path].order = order++;
-		p_receiver->call_deferred(p_receiver_func, p_path, cache[p_path].preview, cache[p_path].small_preview, p_userdata);
+		p_receiver->call(p_receiver_func, p_path, cache[p_path].preview, cache[p_path].small_preview, p_userdata);
 		preview_mutex->unlock();
 		return;
 	}
@@ -416,22 +419,38 @@ void EditorResourcePreview::check_for_invalidation(const String &p_path) {
 	}
 }
 
+void EditorResourcePreview::start() {
+	ERR_FAIL_COND(thread);
+	thread = Thread::create(_thread_func, this);
+	exited = false;
+}
+void EditorResourcePreview::stop() {
+	if (thread) {
+		exit = true;
+		preview_sem->post();
+		while (!exited) {
+			OS::get_singleton()->delay_usec(10000);
+			VisualServer::get_singleton()->sync(); //sync pending stuff, as thread may be blocked on visual server
+		}
+		Thread::wait_to_finish(thread);
+		memdelete(thread);
+		thread = NULL;
+	}
+}
+
 EditorResourcePreview::EditorResourcePreview() {
+	thread = NULL;
 	singleton = this;
 	preview_mutex = Mutex::create();
 	preview_sem = Semaphore::create();
 	order = 0;
 	exit = false;
-
-	thread = Thread::create(_thread_func, this);
+	exited = false;
 }
 
 EditorResourcePreview::~EditorResourcePreview() {
 
-	exit = true;
-	preview_sem->post();
-	Thread::wait_to_finish(thread);
-	memdelete(thread);
+	stop();
 	memdelete(preview_mutex);
 	memdelete(preview_sem);
 }

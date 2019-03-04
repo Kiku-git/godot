@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -255,8 +255,8 @@ void ScriptCreateDialog::_lang_changed(int l) {
 			// change extension by selected language
 			List<String> extensions;
 			// get all possible extensions for script
-			for (int l = 0; l < language_menu->get_item_count(); l++) {
-				ScriptServer::get_language(l)->get_recognized_extensions(&extensions);
+			for (int m = 0; m < language_menu->get_item_count(); m++) {
+				ScriptServer::get_language(m)->get_recognized_extensions(&extensions);
 			}
 
 			for (List<String>::Element *E = extensions.front(); E; E = E->next()) {
@@ -308,8 +308,10 @@ void ScriptCreateDialog::_built_in_pressed() {
 
 	if (internal->is_pressed()) {
 		is_built_in = true;
+		is_new_script_created = true;
 	} else {
 		is_built_in = false;
+		_path_changed(file_path->get_text());
 	}
 	_update_dialog();
 }

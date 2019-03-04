@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -166,9 +166,20 @@ void MultiMesh::set_instance_transform(int p_instance, const Transform &p_transf
 
 	VisualServer::get_singleton()->multimesh_instance_set_transform(multimesh, p_instance, p_transform);
 }
+
+void MultiMesh::set_instance_transform_2d(int p_instance, const Transform2D &p_transform) {
+
+	VisualServer::get_singleton()->multimesh_instance_set_transform_2d(multimesh, p_instance, p_transform);
+}
+
 Transform MultiMesh::get_instance_transform(int p_instance) const {
 
 	return VisualServer::get_singleton()->multimesh_instance_get_transform(multimesh, p_instance);
+}
+
+Transform2D MultiMesh::get_instance_transform_2d(int p_instance) const {
+
+	return VisualServer::get_singleton()->multimesh_instance_get_transform_2d(multimesh, p_instance);
 }
 
 void MultiMesh::set_instance_color(int p_instance, const Color &p_color) {
@@ -245,7 +256,9 @@ void MultiMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_instance_count", "count"), &MultiMesh::set_instance_count);
 	ClassDB::bind_method(D_METHOD("get_instance_count"), &MultiMesh::get_instance_count);
 	ClassDB::bind_method(D_METHOD("set_instance_transform", "instance", "transform"), &MultiMesh::set_instance_transform);
+	ClassDB::bind_method(D_METHOD("set_instance_transform_2d", "instance", "transform"), &MultiMesh::set_instance_transform_2d);
 	ClassDB::bind_method(D_METHOD("get_instance_transform", "instance"), &MultiMesh::get_instance_transform);
+	ClassDB::bind_method(D_METHOD("get_instance_transform_2d", "instance"), &MultiMesh::get_instance_transform_2d);
 	ClassDB::bind_method(D_METHOD("set_instance_color", "instance", "color"), &MultiMesh::set_instance_color);
 	ClassDB::bind_method(D_METHOD("get_instance_color", "instance"), &MultiMesh::get_instance_color);
 	ClassDB::bind_method(D_METHOD("set_instance_custom_data", "instance", "custom_data"), &MultiMesh::set_instance_custom_data);

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -38,17 +38,17 @@
 #include "core/array.h"
 #include "core/color.h"
 #include "core/dictionary.h"
-#include "core/dvector.h"
 #include "core/io/ip_address.h"
 #include "core/math/aabb.h"
+#include "core/math/basis.h"
 #include "core/math/face3.h"
-#include "core/math/matrix3.h"
 #include "core/math/plane.h"
 #include "core/math/quat.h"
 #include "core/math/transform.h"
 #include "core/math/transform_2d.h"
 #include "core/math/vector3.h"
 #include "core/node_path.h"
+#include "core/pool_vector.h"
 #include "core/ref_ptr.h"
 #include "core/rid.h"
 #include "core/ustring.h"
@@ -68,6 +68,13 @@ typedef PoolVector<String> PoolStringArray;
 typedef PoolVector<Vector2> PoolVector2Array;
 typedef PoolVector<Vector3> PoolVector3Array;
 typedef PoolVector<Color> PoolColorArray;
+
+// Temporary workaround until c++11 alignas()
+#ifdef __GNUC__
+#define GCC_ALIGNED_8 __attribute__((aligned(8)))
+#else
+#define GCC_ALIGNED_8
+#endif
 
 class Variant {
 public:
@@ -132,7 +139,6 @@ private:
 	_FORCE_INLINE_ const ObjData &_get_obj() const;
 
 	union {
-
 		bool _bool;
 		int64_t _int;
 		double _real;
@@ -142,7 +148,7 @@ private:
 		Transform *_transform;
 		void *_ptr; //generic pointer
 		uint8_t _mem[sizeof(ObjData) > (sizeof(real_t) * 4) ? sizeof(ObjData) : (sizeof(real_t) * 4)];
-	} _data;
+	} _data GCC_ALIGNED_8;
 
 	void reference(const Variant &p_variant);
 	void clear();

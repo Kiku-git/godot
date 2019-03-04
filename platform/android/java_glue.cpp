@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -28,8 +28,6 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef ANDROID_NATIVE_ACTIVITY
-
 #include "java_glue.h"
 #include "android/asset_manager_jni.h"
 #include "audio_driver_jandroid.h"
@@ -43,6 +41,7 @@
 #include "main/input_default.h"
 #include "main/main.h"
 #include "os_android.h"
+#include "string_android.h"
 #include "thread_jandroid.h"
 #include <unistd.h>
 
@@ -225,7 +224,7 @@ String _get_class_name(JNIEnv *env, jclass cls, bool *array) {
 		jboolean isarr = env->CallBooleanMethod(cls, isArray);
 		(*array) = isarr ? true : false;
 	}
-	String name = env->GetStringUTFChars(clsName, NULL);
+	String name = jstring_to_string(clsName, env);
 	env->DeleteLocalRef(clsName);
 
 	return name;
@@ -243,7 +242,7 @@ Variant _jobject_to_variant(JNIEnv *env, jobject obj) {
 
 	if (name == "java.lang.String") {
 
-		return String::utf8(env->GetStringUTFChars((jstring)obj, NULL));
+		return jstring_to_string((jstring)obj, env);
 	};
 
 	if (name == "[Ljava.lang.String;") {
@@ -254,7 +253,7 @@ Variant _jobject_to_variant(JNIEnv *env, jobject obj) {
 
 		for (int i = 0; i < stringCount; i++) {
 			jstring string = (jstring)env->GetObjectArrayElement(arr, i);
-			sarr.push_back(String::utf8(env->GetStringUTFChars(string, NULL)));
+			sarr.push_back(jstring_to_string(string, env));
 			env->DeleteLocalRef(string);
 		}
 
@@ -268,11 +267,11 @@ Variant _jobject_to_variant(JNIEnv *env, jobject obj) {
 		return ret;
 	};
 
-	if (name == "java.lang.Integer") {
+	if (name == "java.lang.Integer" || name == "java.lang.Long") {
 
 		jclass nclass = env->FindClass("java/lang/Number");
-		jmethodID intValue = env->GetMethodID(nclass, "intValue", "()I");
-		int ret = env->CallIntMethod(obj, intValue);
+		jmethodID longValue = env->GetMethodID(nclass, "longValue", "()J");
+		jlong ret = env->CallLongMethod(obj, longValue);
 		return ret;
 	};
 
@@ -489,7 +488,7 @@ public:
 			case Variant::STRING: {
 
 				jobject o = env->CallObjectMethodA(instance, E->get().method, v);
-				ret = String::utf8(env->GetStringUTFChars((jstring)o, NULL));
+				ret = jstring_to_string((jstring)o, env);
 				env->DeleteLocalRef(o);
 			} break;
 			case Variant::POOL_STRING_ARRAY: {
@@ -636,20 +635,20 @@ static String _get_user_data_dir() {
 
 	JNIEnv *env = ThreadAndroid::get_env();
 	jstring s = (jstring)env->CallObjectMethod(godot_io, _getDataDir);
-	return String(env->GetStringUTFChars(s, NULL));
+	return jstring_to_string(s, env);
 }
 
 static String _get_locale() {
 
 	JNIEnv *env = ThreadAndroid::get_env();
 	jstring s = (jstring)env->CallObjectMethod(godot_io, _getLocale);
-	return String(env->GetStringUTFChars(s, NULL));
+	return jstring_to_string(s, env);
 }
 
 static String _get_clipboard() {
 	JNIEnv *env = ThreadAndroid::get_env();
 	jstring s = (jstring)env->CallObjectMethod(_godot_instance, _getClipboard);
-	return String(env->GetStringUTFChars(s, NULL));
+	return jstring_to_string(s, env);
 }
 
 static void _set_clipboard(const String &p_text) {
@@ -663,7 +662,7 @@ static String _get_model() {
 
 	JNIEnv *env = ThreadAndroid::get_env();
 	jstring s = (jstring)env->CallObjectMethod(godot_io, _getModel);
-	return String(env->GetStringUTFChars(s, NULL));
+	return jstring_to_string(s, env);
 }
 
 static int _get_screen_dpi() {
@@ -676,7 +675,7 @@ static String _get_unique_id() {
 
 	JNIEnv *env = ThreadAndroid::get_env();
 	jstring s = (jstring)env->CallObjectMethod(godot_io, _getUniqueID);
-	return String(env->GetStringUTFChars(s, NULL));
+	return jstring_to_string(s, env);
 }
 
 static void _show_vk(const String &p_existing) {
@@ -696,7 +695,7 @@ static String _get_system_dir(int p_dir) {
 
 	JNIEnv *env = ThreadAndroid::get_env();
 	jstring s = (jstring)env->CallObjectMethod(godot_io, _getSystemDir, p_dir);
-	return String(env->GetStringUTFChars(s, NULL));
+	return jstring_to_string(s, env);
 }
 
 static int _get_gles_version_code() {
@@ -893,12 +892,14 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_setup(JNIEnv *env, jo
 	ThreadAndroid::setup_thread();
 
 	const char **cmdline = NULL;
+	jstring *j_cmdline = NULL;
 	int cmdlen = 0;
 	if (p_cmdline) {
 		cmdlen = env->GetArrayLength(p_cmdline);
 		if (cmdlen) {
-			cmdline = (const char **)malloc((env->GetArrayLength(p_cmdline) + 1) * sizeof(const char *));
+			cmdline = (const char **)malloc((cmdlen + 1) * sizeof(const char *));
 			cmdline[cmdlen] = NULL;
+			j_cmdline = (jstring *)malloc(cmdlen * sizeof(jstring));
 
 			for (int i = 0; i < cmdlen; i++) {
 
@@ -906,12 +907,19 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_setup(JNIEnv *env, jo
 				const char *rawString = env->GetStringUTFChars(string, 0);
 
 				cmdline[i] = rawString;
+				j_cmdline[i] = string;
 			}
 		}
 	}
 
 	Error err = Main::setup("apk", cmdlen, (char **)cmdline, false);
 	if (cmdline) {
+		if (j_cmdline) {
+			for (int i = 0; i < cmdlen; ++i) {
+				env->ReleaseStringUTFChars(j_cmdline[i], cmdline[i]);
+			}
+			free(j_cmdline);
+		}
 		free(cmdline);
 	}
 
@@ -1315,7 +1323,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_joyhat(JNIEnv *env, j
 
 JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_joyconnectionchanged(JNIEnv *env, jobject obj, jint p_device, jboolean p_connected, jstring p_name) {
 	if (os_android) {
-		String name = env->GetStringUTFChars(p_name, NULL);
+		String name = jstring_to_string(p_name, env);
 		os_android->joy_connection_changed(p_device, p_connected, name);
 	}
 }
@@ -1388,7 +1396,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_audio(JNIEnv *env, jo
 
 JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_singleton(JNIEnv *env, jobject obj, jstring name, jobject p_object) {
 
-	String singname = env->GetStringUTFChars(name, NULL);
+	String singname = jstring_to_string(name, env);
 	JNISingleton *s = memnew(JNISingleton);
 	s->set_instance(env->NewGlobalRef(p_object));
 	jni_singletons[singname] = s;
@@ -1465,21 +1473,21 @@ static const char *get_jni_sig(const String &p_type) {
 
 JNIEXPORT jstring JNICALL Java_org_godotengine_godot_GodotLib_getGlobal(JNIEnv *env, jobject obj, jstring path) {
 
-	String js = env->GetStringUTFChars(path, NULL);
+	String js = jstring_to_string(path, env);
 
 	return env->NewStringUTF(ProjectSettings::get_singleton()->get(js).operator String().utf8().get_data());
 }
 
 JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_method(JNIEnv *env, jobject obj, jstring sname, jstring name, jstring ret, jobjectArray args) {
 
-	String singname = env->GetStringUTFChars(sname, NULL);
+	String singname = jstring_to_string(sname, env);
 
 	ERR_FAIL_COND(!jni_singletons.has(singname));
 
 	JNISingleton *s = jni_singletons.get(singname);
 
-	String mname = env->GetStringUTFChars(name, NULL);
-	String retval = env->GetStringUTFChars(ret, NULL);
+	String mname = jstring_to_string(name, env);
+	String retval = jstring_to_string(ret, env);
 	Vector<Variant::Type> types;
 	String cs = "(";
 
@@ -1488,9 +1496,9 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_method(JNIEnv *env, j
 	for (int i = 0; i < stringCount; i++) {
 
 		jstring string = (jstring)env->GetObjectArrayElement(args, i);
-		const char *rawString = env->GetStringUTFChars(string, 0);
-		types.push_back(get_jni_type(String(rawString)));
-		cs += get_jni_sig(String(rawString));
+		const String rawString = jstring_to_string(string, env);
+		types.push_back(get_jni_type(rawString));
+		cs += get_jni_sig(rawString);
 	}
 
 	cs += ")";
@@ -1513,7 +1521,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_callobject(JNIEnv *en
 	int res = env->PushLocalFrame(16);
 	ERR_FAIL_COND(res != 0);
 
-	String str_method = env->GetStringUTFChars(method, NULL);
+	String str_method = jstring_to_string(method, env);
 
 	int count = env->GetArrayLength(params);
 	Variant *vlist = (Variant *)alloca(sizeof(Variant) * count);
@@ -1545,7 +1553,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_calldeferred(JNIEnv *
 	int res = env->PushLocalFrame(16);
 	ERR_FAIL_COND(res != 0);
 
-	String str_method = env->GetStringUTFChars(method, NULL);
+	String str_method = jstring_to_string(method, env);
 
 	int count = env->GetArrayLength(params);
 	Variant args[VARIANT_ARG_MAX];
@@ -1566,4 +1574,3 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_calldeferred(JNIEnv *
 //Main::cleanup();
 
 //return os.get_exit_code();
-#endif

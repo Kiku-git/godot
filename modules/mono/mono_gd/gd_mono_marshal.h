@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -206,9 +206,10 @@ enum {
 
 // In the future we may force this if we want to ref return these structs
 #ifdef GD_MONO_FORCE_INTEROP_STRUCT_COPY
-// Sometimes clang-format can be an ass
-GD_STATIC_ASSERT(MATCHES_Vector2 &&MATCHES_Rect2 &&MATCHES_Transform2D &&MATCHES_Vector3 &&
-				MATCHES_Basis &&MATCHES_Quat &&MATCHES_Transform &&MATCHES_AABB &&MATCHES_Color &&MATCHES_Plane);
+/* clang-format off */
+GD_STATIC_ASSERT(MATCHES_Vector2 && MATCHES_Rect2 && MATCHES_Transform2D && MATCHES_Vector3 &&
+				MATCHES_Basis && MATCHES_Quat && MATCHES_Transform && MATCHES_AABB && MATCHES_Color &&MATCHES_Plane);
+/* clang-format on */
 #endif
 
 } // namespace InteropLayout

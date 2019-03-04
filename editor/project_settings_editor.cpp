@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -115,10 +115,9 @@ void ProjectSettingsEditor::_notification(int p_what) {
 
 		} break;
 		case NOTIFICATION_POPUP_HIDE: {
-			EditorSettings::get_singleton()->set("interface/dialogs/project_settings_bounds", get_rect());
+			EditorSettings::get_singleton()->set_project_metadata("dialog_bounds", "project_settings", get_rect());
 		} break;
 		case EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED: {
-
 			search_button->set_icon(get_icon("Search", "EditorIcons"));
 			search_box->set_right_icon(get_icon("Search", "EditorIcons"));
 			search_box->set_clear_button_enabled(true);
@@ -713,7 +712,7 @@ void ProjectSettingsEditor::_update_actions() {
 			if (event.is_null())
 				continue;
 
-			TreeItem *action = input_editor->create_item(item);
+			TreeItem *action2 = input_editor->create_item(item);
 
 			Ref<InputEventKey> k = event;
 			if (k.is_valid()) {
@@ -728,8 +727,8 @@ void ProjectSettingsEditor::_update_actions() {
 				if (k->get_control())
 					str = TTR("Control+") + str;
 
-				action->set_text(0, str);
-				action->set_icon(0, get_icon("Keyboard", "EditorIcons"));
+				action2->set_text(0, str);
+				action2->set_icon(0, get_icon("Keyboard", "EditorIcons"));
 			}
 
 			Ref<InputEventJoypadButton> jb = event;
@@ -742,8 +741,8 @@ void ProjectSettingsEditor::_update_actions() {
 				else
 					str += ".";
 
-				action->set_text(0, str);
-				action->set_icon(0, get_icon("JoyButton", "EditorIcons"));
+				action2->set_text(0, str);
+				action2->set_icon(0, get_icon("JoyButton", "EditorIcons"));
 			}
 
 			Ref<InputEventMouseButton> mb = event;
@@ -759,8 +758,8 @@ void ProjectSettingsEditor::_update_actions() {
 					default: str += TTR("Button") + " " + itos(mb->get_button_index()) + ".";
 				}
 
-				action->set_text(0, str);
-				action->set_icon(0, get_icon("Mouse", "EditorIcons"));
+				action2->set_text(0, str);
+				action2->set_icon(0, get_icon("Mouse", "EditorIcons"));
 			}
 
 			Ref<InputEventJoypadMotion> jm = event;
@@ -771,14 +770,14 @@ void ProjectSettingsEditor::_update_actions() {
 				int n = 2 * ax + (jm->get_axis_value() < 0 ? 0 : 1);
 				String desc = _axis_names[n];
 				String str = _get_device_string(jm->get_device()) + ", " + TTR("Axis") + " " + itos(ax) + " " + (jm->get_axis_value() < 0 ? "-" : "+") + desc + ".";
-				action->set_text(0, str);
-				action->set_icon(0, get_icon("JoyAxis", "EditorIcons"));
+				action2->set_text(0, str);
+				action2->set_icon(0, get_icon("JoyAxis", "EditorIcons"));
 			}
-			action->set_metadata(0, i);
-			action->set_meta("__input", event);
+			action2->set_metadata(0, i);
+			action2->set_meta("__input", event);
 
-			action->add_button(2, get_icon("Edit", "EditorIcons"), 3, false, TTR("Edit"));
-			action->add_button(2, get_icon("Remove", "EditorIcons"), 2, false, TTR("Remove"));
+			action2->add_button(2, get_icon("Edit", "EditorIcons"), 3, false, TTR("Edit"));
+			action2->add_button(2, get_icon("Remove", "EditorIcons"), 2, false, TTR("Remove"));
 		}
 	}
 
@@ -788,8 +787,9 @@ void ProjectSettingsEditor::_update_actions() {
 void ProjectSettingsEditor::popup_project_settings() {
 
 	// Restore valid window bounds or pop up at default size.
-	if (EditorSettings::get_singleton()->has_setting("interface/dialogs/project_settings_bounds")) {
-		popup(EditorSettings::get_singleton()->get("interface/dialogs/project_settings_bounds"));
+	Rect2 saved_size = EditorSettings::get_singleton()->get_project_metadata("dialog_bounds", "project_settings", Rect2());
+	if (saved_size != Rect2()) {
+		popup(saved_size);
 	} else {
 
 		Size2 popup_size = Size2(900, 700) * editor_get_scale();
@@ -1034,8 +1034,8 @@ void ProjectSettingsEditor::_copy_to_platform_about_to_show() {
 
 		String custom = EditorExport::get_singleton()->get_export_preset(i)->get_custom_features();
 		Vector<String> custom_list = custom.split(",");
-		for (int i = 0; i < custom_list.size(); i++) {
-			String f = custom_list[i].strip_edges();
+		for (int j = 0; j < custom_list.size(); j++) {
+			String f = custom_list[j].strip_edges();
 			if (f != String()) {
 				presets.insert(f);
 			}
@@ -1543,10 +1543,10 @@ void ProjectSettingsEditor::_update_translations() {
 				PoolStringArray selected = remaps[keys[i]];
 				for (int j = 0; j < selected.size(); j++) {
 
-					String s = selected[j];
-					int qp = s.find_last(":");
-					String path = s.substr(0, qp);
-					String locale = s.substr(qp + 1, s.length());
+					String s2 = selected[j];
+					int qp = s2.find_last(":");
+					String path = s2.substr(0, qp);
+					String locale = s2.substr(qp + 1, s2.length());
 
 					TreeItem *t2 = translation_remap_options->create_item(root2);
 					t2->set_editable(0, false);
@@ -1606,7 +1606,8 @@ TabContainer *ProjectSettingsEditor::get_tabs() {
 }
 
 void ProjectSettingsEditor::_editor_restart() {
-	EditorNode::get_singleton()->save_all_scenes_and_restart();
+	EditorNode::get_singleton()->save_all_scenes();
+	EditorNode::get_singleton()->restart_editor();
 }
 
 void ProjectSettingsEditor::_editor_restart_request() {

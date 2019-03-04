@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2018 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2018 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -90,7 +90,8 @@ class EditorResourcePreview : public Node {
 	Mutex *preview_mutex;
 	Semaphore *preview_sem;
 	Thread *thread;
-	bool exit;
+	volatile bool exit;
+	volatile bool exited;
 
 	struct Item {
 		Ref<Texture> preview;
@@ -125,6 +126,9 @@ public:
 	void add_preview_generator(const Ref<EditorResourcePreviewGenerator> &p_generator);
 	void remove_preview_generator(const Ref<EditorResourcePreviewGenerator> &p_generator);
 	void check_for_invalidation(const String &p_path);
+
+	void start();
+	void stop();
 
 	EditorResourcePreview();
 	~EditorResourcePreview();
