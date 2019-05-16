@@ -60,7 +60,7 @@ class VisualShaderEditor : public VBoxContainer {
 
 	Ref<VisualShader> visual_shader;
 	GraphEdit *graph;
-	MenuButton *add_node;
+	ToolButton *add_node;
 
 	OptionButton *edit_type;
 
@@ -68,18 +68,62 @@ class VisualShaderEditor : public VBoxContainer {
 	Label *error_label;
 
 	UndoRedo *undo_redo;
+	Point2 saved_node_pos;
+	bool saved_node_pos_dirty;
+
+	ConfirmationDialog *members_dialog;
+	MenuButton *tools;
+
+	enum ToolsMenuOptions {
+		EXPAND_ALL,
+		COLLAPSE_ALL
+	};
+
+	Tree *members;
+	AcceptDialog *alert;
+	LineEdit *node_filter;
+	RichTextLabel *node_desc;
+
+	void _tools_menu_option(int p_idx);
+	void _show_members_dialog(bool at_mouse_pos);
 
 	void _update_graph();
 
 	struct AddOption {
 		String name;
 		String category;
+		String sub_category;
 		String type;
+		String description;
+		int sub_func;
+		String sub_func_str;
 		Ref<Script> script;
-		AddOption(const String &p_name = String(), const String &p_category = String(), const String &p_type = String()) {
+		int mode;
+		int return_type;
+		int func;
+
+		AddOption(const String &p_name = String(), const String &p_category = String(), const String &p_sub_category = String(), const String &p_type = String(), const String &p_description = String(), int p_sub_func = -1, int p_return_type = -1, int p_mode = -1, int p_func = -1) {
 			name = p_name;
 			type = p_type;
 			category = p_category;
+			sub_category = p_sub_category;
+			description = p_description;
+			sub_func = p_sub_func;
+			return_type = p_return_type;
+			mode = p_mode;
+			func = p_func;
+		}
+
+		AddOption(const String &p_name, const String &p_category, const String &p_sub_category, const String &p_type, const String &p_description, const String &p_sub_func, int p_return_type = -1, int p_mode = -1, int p_func = -1) {
+			name = p_name;
+			type = p_type;
+			category = p_category;
+			sub_category = p_sub_category;
+			description = p_description;
+			sub_func_str = p_sub_func;
+			return_type = p_return_type;
+			mode = p_mode;
+			func = p_func;
 		}
 	};
 
@@ -87,7 +131,7 @@ class VisualShaderEditor : public VBoxContainer {
 
 	void _draw_color_over_button(Object *obj, Color p_color);
 
-	void _add_node(int p_idx);
+	void _add_node(int p_idx, int p_op_idx = -1);
 	void _update_options_menu();
 
 	static VisualShaderEditor *singleton;
@@ -102,6 +146,7 @@ class VisualShaderEditor : public VBoxContainer {
 	void _node_selected(Object *p_node);
 
 	void _delete_request(int);
+	void _on_nodes_delete();
 
 	void _removed_from_graph();
 
@@ -124,7 +169,20 @@ class VisualShaderEditor : public VBoxContainer {
 	void _input_select_item(Ref<VisualShaderNodeInput> input, String name);
 
 	void _preview_select_port(int p_node, int p_port);
-	void _input(const Ref<InputEvent> p_event);
+	void _graph_gui_input(const Ref<InputEvent> p_event);
+
+	void _member_filter_changed(const String &p_text);
+	void _sbox_input(const Ref<InputEvent> &p_ie);
+	void _member_selected();
+	void _member_unselected();
+	void _member_create();
+
+	Variant get_drag_data_fw(const Point2 &p_point, Control *p_from);
+	bool can_drop_data_fw(const Point2 &p_point, const Variant &p_data, Control *p_from) const;
+	void drop_data_fw(const Point2 &p_point, const Variant &p_data, Control *p_from);
+
+	bool _is_available(int p_flags);
+	void _update_created_node(GraphNode *node);
 
 protected:
 	void _notification(int p_what);

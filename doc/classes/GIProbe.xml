@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<class name="GIProbe" inherits="VisualInstance" category="Core" version="3.1">
+<class name="GIProbe" inherits="VisualInstance" category="Core" version="3.2">
 	<brief_description>
 	</brief_description>
 	<description>
@@ -7,8 +7,6 @@
 	<tutorials>
 		<link>https://docs.godotengine.org/en/latest/tutorials/3d/gi_probes.html</link>
 	</tutorials>
-	<demos>
-	</demos>
 	<methods>
 		<method name="bake">
 			<return type="void">

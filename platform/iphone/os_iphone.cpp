@@ -84,14 +84,14 @@ void OSIPhone::set_data_dir(String p_dir) {
 	memdelete(da);
 };
 
-void OSIPhone::set_unique_id(String p_ID) {
+void OSIPhone::set_unique_id(String p_id) {
 
-	unique_ID = p_ID;
+	unique_id = p_id;
 };
 
 String OSIPhone::get_unique_id() const {
 
-	return unique_ID;
+	return unique_id;
 };
 
 void OSIPhone::initialize_core() {
@@ -120,7 +120,7 @@ Error OSIPhone::initialize(const VideoMode &p_desired, int p_video_driver, int p
 				RasterizerGLES3::make_current();
 				break;
 			} else {
-				if (GLOBAL_GET("rendering/quality/driver/driver_fallback") == "Best") {
+				if (GLOBAL_GET("rendering/quality/driver/fallback_to_gles2")) {
 					p_video_driver = VIDEO_DRIVER_GLES2;
 					use_gl3 = false;
 					continue;
@@ -490,16 +490,10 @@ void OSIPhone::set_keep_screen_on(bool p_enabled) {
 	_set_keep_screen_on(p_enabled);
 };
 
-void OSIPhone::set_cursor_shape(CursorShape p_shape){
-
-};
-
 String OSIPhone::get_user_data_dir() const {
 
 	return data_dir;
 };
-
-void OSIPhone::set_custom_mouse_cursor(const RES &p_cursor, CursorShape p_shape, const Vector2 &p_hotspot){};
 
 String OSIPhone::get_name() {
 

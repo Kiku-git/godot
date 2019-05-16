@@ -45,7 +45,7 @@ class AudioDriver {
 
 	static AudioDriver *singleton;
 	uint64_t _last_mix_time;
-	uint64_t _mix_amount;
+	uint64_t _last_mix_frames;
 
 #ifdef DEBUG_ENABLED
 	uint64_t prof_ticks;
@@ -71,7 +71,8 @@ protected:
 #endif
 
 public:
-	double get_mix_time() const; //useful for video -> audio sync
+	double get_time_since_last_mix() const; //useful for video -> audio sync
+	double get_time_to_next_mix() const;
 
 	enum SpeakerMode {
 		SPEAKER_MODE_STEREO,
@@ -163,6 +164,9 @@ public:
 	typedef void (*AudioCallback)(void *p_userdata);
 
 private:
+	uint64_t mix_time;
+	int mix_size;
+
 	uint32_t buffer_size;
 	uint64_t mix_count;
 	uint64_t mix_frames;
@@ -322,6 +326,7 @@ public:
 
 	int get_bus_effect_count(int p_bus);
 	Ref<AudioEffect> get_bus_effect(int p_bus, int p_effect);
+	Ref<AudioEffectInstance> get_bus_effect_instance(int p_bus, int p_effect, int p_channel = 0);
 
 	void swap_bus_effects(int p_bus, int p_effect, int p_by_effect);
 
@@ -350,8 +355,9 @@ public:
 
 	static AudioServer *get_singleton();
 
-	virtual double get_mix_time() const; //useful for video -> audio sync
-	virtual double get_output_delay() const;
+	virtual double get_output_latency() const;
+	virtual double get_time_to_next_mix() const;
+	virtual double get_time_since_last_mix() const;
 
 	void *audio_data_alloc(uint32_t p_data_len, const uint8_t *p_from_data = NULL);
 	void audio_data_free(void *p_data);
@@ -376,7 +382,6 @@ public:
 	String capture_get_device();
 	void capture_set_device(const String &p_name);
 
-	float get_output_latency() { return output_latency; }
 	AudioServer();
 	virtual ~AudioServer();
 };

@@ -104,6 +104,14 @@ SoftBody::PinnedPoint::PinnedPoint(const PinnedPoint &obj_tocopy) {
 	offset = obj_tocopy.offset;
 }
 
+SoftBody::PinnedPoint SoftBody::PinnedPoint::operator=(const PinnedPoint &obj) {
+	point_index = obj.point_index;
+	spatial_attachment_path = obj.spatial_attachment_path;
+	spatial_attachment = obj.spatial_attachment;
+	offset = obj.offset;
+	return *this;
+}
+
 void SoftBody::_update_pickable() {
 	if (!is_inside_tree())
 		return;
@@ -397,7 +405,7 @@ String SoftBody::get_configuration_warning() const {
 		if (!warning.empty())
 			warning += "\n\n";
 
-		warning += TTR("This body will be ignored until you set a mesh");
+		warning += TTR("This body will be ignored until you set a mesh.");
 	}
 
 	Transform t = get_transform();

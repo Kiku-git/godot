@@ -198,6 +198,17 @@ CameraMatrix ARVRInterfaceGDNative::get_projection_for_eye(ARVRInterface::Eyes p
 	return cm;
 }
 
+unsigned int ARVRInterfaceGDNative::get_external_texture_for_eye(ARVRInterface::Eyes p_eye) {
+
+	ERR_FAIL_COND_V(interface == NULL, 0);
+
+	if ((interface->version.major > 1) || ((interface->version.major) == 1 && (interface->version.minor >= 1))) {
+		return (unsigned int)interface->get_external_texture_for_eye(data, (godot_int)p_eye);
+	} else {
+		return 0;
+	}
+}
+
 void ARVRInterfaceGDNative::commit_for_eye(ARVRInterface::Eyes p_eye, RID p_render_target, const Rect2 &p_screen_rect) {
 
 	ERR_FAIL_COND(interface == NULL);
@@ -209,6 +220,15 @@ void ARVRInterfaceGDNative::process() {
 	ERR_FAIL_COND(interface == NULL);
 
 	interface->process(data);
+}
+
+void ARVRInterfaceGDNative::notification(int p_what) {
+	ERR_FAIL_COND(interface == NULL);
+
+	// this is only available in interfaces that implement 1.1 or later
+	if ((interface->version.major > 1) || ((interface->version.major == 1) && (interface->version.minor > 0))) {
+		interface->notification(data, p_what);
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////////////

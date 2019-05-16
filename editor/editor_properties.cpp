@@ -786,6 +786,7 @@ EditorPropertyLayers::EditorPropertyLayers() {
 	grid->set_h_size_flags(SIZE_EXPAND_FILL);
 	hb->add_child(grid);
 	button = memnew(Button);
+	button->set_toggle_mode(true);
 	button->set_text("..");
 	button->connect("pressed", this, "_button_pressed");
 	hb->add_child(button);
@@ -794,6 +795,7 @@ EditorPropertyLayers::EditorPropertyLayers() {
 	add_child(layers);
 	layers->set_hide_on_checkable_item_selection(false);
 	layers->connect("id_pressed", this, "_menu_pressed");
+	layers->connect("popup_hide", button, "set_pressed", varray(false));
 }
 
 ///////////////////// INT /////////////////////////
@@ -1982,6 +1984,8 @@ void EditorPropertyResource::_file_selected(const String &p_path) {
 
 	RES res = ResourceLoader::load(p_path);
 
+	ERR_FAIL_COND(res.is_null());
+
 	List<PropertyInfo> prop_list;
 	get_edited_object()->get_property_list(&prop_list);
 	String property_types;
@@ -2190,7 +2194,7 @@ void EditorPropertyResource::_menu_option(int p_which) {
 			Object *obj = NULL;
 
 			if (ScriptServer::is_global_class(intype)) {
-				obj = ClassDB::instance(ScriptServer::get_global_class_base(intype));
+				obj = ClassDB::instance(ScriptServer::get_global_class_native_base(intype));
 				if (obj) {
 					Ref<Script> script = ResourceLoader::load(ScriptServer::get_global_class_path(intype));
 					if (script.is_valid()) {
@@ -2287,6 +2291,16 @@ void EditorPropertyResource::_update_menu_items() {
 				E = E->next();
 			}
 
+			List<StringName> global_classes;
+			ScriptServer::get_global_class_list(&global_classes);
+			E = global_classes.front();
+			while (E) {
+				if (EditorNode::get_editor_data().script_class_is_parent(E->get(), base_type)) {
+					valid_inheritors.insert(E->get());
+				}
+				E = E->next();
+			}
+
 			for (Set<String>::Element *F = valid_inheritors.front(); F; F = F->next()) {
 				String t = F->get();
 
@@ -2303,7 +2317,7 @@ void EditorPropertyResource::_update_menu_items() {
 					}
 				}
 
-				if (!is_custom_resource && !ClassDB::can_instance(t))
+				if (!is_custom_resource && !(ScriptServer::is_global_class(t) || ClassDB::can_instance(t)))
 					continue;
 
 				inheritors_array.push_back(t);
@@ -2443,6 +2457,38 @@ void EditorPropertyResource::_open_editor_pressed() {
 	}
 }
 
+void EditorPropertyResource::_fold_other_editors(Object *p_self) {
+
+	if (this == p_self) {
+		return;
+	}
+
+	RES res = get_edited_object()->get(get_edited_property());
+
+	if (!res.is_valid())
+		return;
+	bool use_editor = false;
+	for (int i = 0; i < EditorNode::get_singleton()->get_editor_data().get_editor_plugin_count(); i++) {
+		EditorPlugin *ep = EditorNode::get_singleton()->get_editor_data().get_editor_plugin(i);
+		if (ep->handles(res.ptr())) {
+			use_editor = true;
+		}
+	}
+
+	if (!use_editor)
+		return;
+	bool unfolded = get_edited_object()->editor_is_section_unfolded(get_edited_property());
+
+	opened_editor = false;
+
+	if (unfolded) {
+		//refold
+		assign->set_pressed(false);
+		get_edited_object()->editor_set_section_unfold(get_edited_property(), false);
+		update_property();
+	}
+}
+
 void EditorPropertyResource::update_property() {
 
 	RES res = get_edited_object()->get(get_edited_property());
@@ -2487,12 +2533,20 @@ void EditorPropertyResource::update_property() {
 				}
 
 				if (use_editor) {
+					//open editor directly and hide other open of these
+					_open_editor_pressed();
+					if (is_inside_tree()) {
+						get_tree()->call_deferred("call_group", "_editor_resource_properties", "_fold_other_editors", this);
+					}
+					opened_editor = true;
+					/*
 					Button *open_in_editor = memnew(Button);
 					open_in_editor->set_text(TTR("Open Editor"));
 					open_in_editor->set_icon(get_icon("Edit", "EditorIcons"));
 					sub_inspector_vbox->add_child(open_in_editor);
 					open_in_editor->connect("pressed", this, "_open_editor_pressed");
 					open_in_editor->set_h_size_flags(SIZE_SHRINK_CENTER);
+					*/
 				}
 			}
 
@@ -2500,12 +2554,17 @@ void EditorPropertyResource::update_property() {
 				sub_inspector->edit(res.ptr());
 			}
 
+			sub_inspector->refresh();
 		} else {
 			if (sub_inspector) {
 				set_bottom_editor(NULL);
 				memdelete(sub_inspector_vbox);
 				sub_inspector = NULL;
 				sub_inspector_vbox = NULL;
+				if (opened_editor) {
+					EditorNode::get_singleton()->hide_top_editors();
+					opened_editor = false;
+				}
 			}
 		}
 #endif
@@ -2541,13 +2600,15 @@ void EditorPropertyResource::_resource_selected() {
 	RES res = get_edited_object()->get(get_edited_property());
 
 	if (res.is_null()) {
+		edit->set_pressed(true);
 		_update_menu();
 		return;
 	}
 
 	if (use_sub_inspector) {
 
-		get_edited_object()->editor_set_section_unfold(get_edited_property(), assign->is_pressed());
+		bool unfold = !get_edited_object()->editor_is_section_unfolded(get_edited_property());
+		get_edited_object()->editor_set_section_unfold(get_edited_property(), unfold);
 		update_property();
 	} else {
 
@@ -2726,10 +2787,12 @@ void EditorPropertyResource::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_button_draw"), &EditorPropertyResource::_button_draw);
 	ClassDB::bind_method(D_METHOD("_open_editor_pressed"), &EditorPropertyResource::_open_editor_pressed);
 	ClassDB::bind_method(D_METHOD("_button_input"), &EditorPropertyResource::_button_input);
+	ClassDB::bind_method(D_METHOD("_fold_other_editors"), &EditorPropertyResource::_fold_other_editors);
 }
 
 EditorPropertyResource::EditorPropertyResource() {
 
+	opened_editor = false;
 	sub_inspector = NULL;
 	sub_inspector_vbox = NULL;
 	use_sub_inspector = bool(EDITOR_GET("interface/inspector/open_resources_in_current_inspector"));
@@ -2758,7 +2821,9 @@ EditorPropertyResource::EditorPropertyResource() {
 	add_child(menu);
 	edit = memnew(Button);
 	edit->set_flat(true);
+	edit->set_toggle_mode(true);
 	menu->connect("id_pressed", this, "_menu_option");
+	menu->connect("popup_hide", edit, "set_pressed", varray(false));
 	edit->connect("pressed", this, "_update_menu");
 	hbc->add_child(edit);
 	edit->connect("gui_input", this, "_button_input");
@@ -2766,6 +2831,8 @@ EditorPropertyResource::EditorPropertyResource() {
 	file = NULL;
 	scene_tree = NULL;
 	dropping = false;
+
+	add_to_group("_editor_resource_properties");
 }
 
 ////////////// DEFAULT PLUGIN //////////////////////
@@ -2821,7 +2888,8 @@ bool EditorInspectorDefaultPlugin::parse_property(Object *p_object, Variant::Typ
 					case PROPERTY_HINT_LAYERS_3D_PHYSICS:
 						lt = EditorPropertyLayers::LAYER_PHYSICS_3D;
 						break;
-					default: {} //compiler could be smarter here and realize this can't happen
+					default: {
+					} //compiler could be smarter here and realize this can't happen
 				}
 				EditorPropertyLayers *editor = memnew(EditorPropertyLayers);
 				editor->setup(lt);
@@ -2930,13 +2998,17 @@ bool EditorInspectorDefaultPlugin::parse_property(Object *p_object, Variant::Typ
 				EditorPropertyClassName *editor = memnew(EditorPropertyClassName);
 				editor->setup("Object", p_hint_text);
 				add_property_editor(p_path, editor);
-			} else if (p_hint == PROPERTY_HINT_DIR || p_hint == PROPERTY_HINT_FILE || p_hint == PROPERTY_HINT_GLOBAL_DIR || p_hint == PROPERTY_HINT_GLOBAL_FILE) {
+			} else if (p_hint == PROPERTY_HINT_DIR || p_hint == PROPERTY_HINT_FILE || p_hint == PROPERTY_HINT_SAVE_FILE || p_hint == PROPERTY_HINT_GLOBAL_DIR || p_hint == PROPERTY_HINT_GLOBAL_FILE) {
 
 				Vector<String> extensions = p_hint_text.split(",");
 				bool global = p_hint == PROPERTY_HINT_GLOBAL_DIR || p_hint == PROPERTY_HINT_GLOBAL_FILE;
 				bool folder = p_hint == PROPERTY_HINT_DIR || p_hint == PROPERTY_HINT_GLOBAL_DIR;
+				bool save = p_hint == PROPERTY_HINT_SAVE_FILE;
 				EditorPropertyPath *editor = memnew(EditorPropertyPath);
 				editor->setup(extensions, folder, global);
+				if (save) {
+					editor->set_save_mode();
+				}
 				add_property_editor(p_path, editor);
 			} else if (p_hint == PROPERTY_HINT_METHOD_OF_VARIANT_TYPE ||
 					   p_hint == PROPERTY_HINT_METHOD_OF_BASE_TYPE ||
@@ -2958,7 +3030,8 @@ bool EditorInspectorDefaultPlugin::parse_property(Object *p_object, Variant::Typ
 					case PROPERTY_HINT_PROPERTY_OF_BASE_TYPE: type = EditorPropertyMember::MEMBER_PROPERTY_OF_BASE_TYPE; break;
 					case PROPERTY_HINT_PROPERTY_OF_INSTANCE: type = EditorPropertyMember::MEMBER_PROPERTY_OF_INSTANCE; break;
 					case PROPERTY_HINT_PROPERTY_OF_SCRIPT: type = EditorPropertyMember::MEMBER_PROPERTY_OF_SCRIPT; break;
-					default: {}
+					default: {
+					}
 				}
 				editor->setup(type, p_hint_text);
 				add_property_editor(p_path, editor);
@@ -3162,12 +3235,11 @@ bool EditorInspectorDefaultPlugin::parse_property(Object *p_object, Variant::Typ
 			editor->setup(p_hint == PROPERTY_HINT_RESOURCE_TYPE ? p_hint_text : "Resource");
 
 			if (p_hint == PROPERTY_HINT_RESOURCE_TYPE) {
-				String open_in_new = EDITOR_GET("interface/inspector/resources_types_to_open_in_new_inspector");
+				String open_in_new = EDITOR_GET("interface/inspector/resources_to_open_in_new_inspector");
 				for (int i = 0; i < open_in_new.get_slice_count(","); i++) {
 					String type = open_in_new.get_slicec(',', i).strip_edges();
 					for (int j = 0; j < p_hint_text.get_slice_count(","); j++) {
 						String inherits = p_hint_text.get_slicec(',', j);
-
 						if (ClassDB::is_parent_class(inherits, type)) {
 
 							editor->set_use_sub_inspector(false);
@@ -3223,7 +3295,8 @@ bool EditorInspectorDefaultPlugin::parse_property(Object *p_object, Variant::Typ
 			editor->setup(Variant::POOL_COLOR_ARRAY);
 			add_property_editor(p_path, editor);
 		} break;
-		default: {}
+		default: {
+		}
 	}
 
 	return false; //can be overridden, although it will most likely be last anyway

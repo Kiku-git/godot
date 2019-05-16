@@ -32,7 +32,6 @@
 
 #include "core/os/os.h"
 #include "core/project_settings.h"
-#include "drivers/gl_context/context_gl.h"
 
 #define _EXT_DEBUG_OUTPUT_SYNCHRONOUS_ARB 0x8242
 #define _EXT_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH_ARB 0x8243
@@ -203,6 +202,10 @@ Error RasterizerGLES2::is_viable() {
 			return ERR_UNAVAILABLE;
 		}
 	}
+
+	if (GLAD_GL_EXT_framebuffer_multisample) {
+		glRenderbufferStorageMultisample = glRenderbufferStorageMultisampleEXT;
+	}
 #endif // GLES_OVER_GL
 
 #endif // GLAD_ENABLED
@@ -321,7 +324,7 @@ void RasterizerGLES2::set_current_render_target(RID p_render_target) {
 	}
 }
 
-void RasterizerGLES2::restore_render_target() {
+void RasterizerGLES2::restore_render_target(bool p_3d_was_drawn) {
 	ERR_FAIL_COND(storage->frame.current_rt == NULL);
 	RasterizerStorageGLES2::RenderTarget *rt = storage->frame.current_rt;
 	glBindFramebuffer(GL_FRAMEBUFFER, rt->fbo);
@@ -410,7 +413,11 @@ void RasterizerGLES2::blit_render_target_to_screen(RID p_render_target, const Re
 	glDisable(GL_BLEND);
 	glBindFramebuffer(GL_FRAMEBUFFER, RasterizerStorageGLES2::system_fbo);
 	glActiveTexture(GL_TEXTURE0 + storage->config.max_texture_image_units - 1);
-	glBindTexture(GL_TEXTURE_2D, rt->color);
+	if (rt->external.fbo != 0) {
+		glBindTexture(GL_TEXTURE_2D, rt->external.color);
+	} else {
+		glBindTexture(GL_TEXTURE_2D, rt->color);
+	}
 
 	// TODO normals
 

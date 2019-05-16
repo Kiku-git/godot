@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<class name="AudioServer" inherits="Object" category="Core" version="3.1">
+<class name="AudioServer" inherits="Object" category="Core" version="3.2">
 	<brief_description>
 		Server interface for low level audio access.
 	</brief_description>
@@ -9,8 +9,6 @@
 	<tutorials>
 		<link>https://docs.godotengine.org/en/latest/tutorials/audio/audio_buses.html</link>
 	</tutorials>
-	<demos>
-	</demos>
 	<methods>
 		<method name="add_bus">
 			<return type="void">
@@ -97,6 +95,18 @@
 				Returns the number of effects on the bus at [code]bus_idx[/code].
 			</description>
 		</method>
+		<method name="get_bus_effect_instance">
+			<return type="AudioEffectInstance">
+			</return>
+			<argument index="0" name="bus_idx" type="int">
+			</argument>
+			<argument index="1" name="effect_idx" type="int">
+			</argument>
+			<argument index="2" name="channel" type="int" default="0">
+			</argument>
+			<description>
+			</description>
+		</method>
 		<method name="get_bus_index" qualifiers="const">
 			<return type="int">
 			</return>
@@ -174,11 +184,29 @@
 				Returns the sample rate at the output of the audioserver.
 			</description>
 		</method>
+		<method name="get_output_latency" qualifiers="const">
+			<return type="float">
+			</return>
+			<description>
+			</description>
+		</method>
 		<method name="get_speaker_mode" qualifiers="const">
 			<return type="int" enum="AudioServer.SpeakerMode">
 			</return>
 			<description>
 				Returns the speaker configuration.
+			</description>
+		</method>
+		<method name="get_time_since_last_mix" qualifiers="const">
+			<return type="float">
+			</return>
+			<description>
+			</description>
+		</method>
+		<method name="get_time_to_next_mix" qualifiers="const">
+			<return type="float">
+			</return>
+			<description>
 			</description>
 		</method>
 		<method name="is_bus_bypassing_effects" qualifiers="const">

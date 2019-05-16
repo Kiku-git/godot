@@ -233,6 +233,13 @@ void ARVRController::_notification(int p_what) {
 				} else {
 					button_states = 0;
 				};
+
+				// check for an updated mesh
+				Ref<Mesh> trackerMesh = tracker->get_mesh();
+				if (mesh != trackerMesh) {
+					mesh = trackerMesh;
+					emit_signal("mesh_updated", mesh);
+				}
 			};
 		}; break;
 		default:
@@ -258,8 +265,11 @@ void ARVRController::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_rumble", "rumble"), &ARVRController::set_rumble);
 	ADD_PROPERTY(PropertyInfo(Variant::REAL, "rumble", PROPERTY_HINT_RANGE, "0.0,1.0,0.01"), "set_rumble", "get_rumble");
 
+	ClassDB::bind_method(D_METHOD("get_mesh"), &ARVRController::get_mesh);
+
 	ADD_SIGNAL(MethodInfo("button_pressed", PropertyInfo(Variant::INT, "button")));
 	ADD_SIGNAL(MethodInfo("button_release", PropertyInfo(Variant::INT, "button")));
+	ADD_SIGNAL(MethodInfo("mesh_updated", PropertyInfo(Variant::OBJECT, "mesh", PROPERTY_HINT_RESOURCE_TYPE, "Mesh")));
 };
 
 void ARVRController::set_controller_id(int p_controller_id) {
@@ -341,6 +351,10 @@ void ARVRController::set_rumble(real_t p_rumble) {
 	};
 };
 
+Ref<Mesh> ARVRController::get_mesh() const {
+	return mesh;
+}
+
 bool ARVRController::get_is_active() const {
 	return is_active;
 };
@@ -365,11 +379,11 @@ String ARVRController::get_configuration_warning() const {
 	// must be child node of ARVROrigin!
 	ARVROrigin *origin = Object::cast_to<ARVROrigin>(get_parent());
 	if (origin == NULL) {
-		return TTR("ARVRController must have an ARVROrigin node as its parent");
+		return TTR("ARVRController must have an ARVROrigin node as its parent.");
 	};
 
 	if (controller_id == 0) {
-		return TTR("The controller id must not be 0 or this controller will not be bound to an actual controller");
+		return TTR("The controller ID must not be 0 or this controller won't be bound to an actual controller.");
 	};
 
 	return String();
@@ -423,6 +437,13 @@ void ARVRAnchor::_notification(int p_what) {
 
 				// apply our reference frame and set our transform
 				set_transform(arvr_server->get_reference_frame() * transform);
+
+				// check for an updated mesh
+				Ref<Mesh> trackerMesh = tracker->get_mesh();
+				if (mesh != trackerMesh) {
+					mesh = trackerMesh;
+					emit_signal("mesh_updated", mesh);
+				}
 			};
 		}; break;
 		default:
@@ -441,6 +462,9 @@ void ARVRAnchor::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_size"), &ARVRAnchor::get_size);
 
 	ClassDB::bind_method(D_METHOD("get_plane"), &ARVRAnchor::get_plane);
+
+	ClassDB::bind_method(D_METHOD("get_mesh"), &ARVRAnchor::get_mesh);
+	ADD_SIGNAL(MethodInfo("mesh_updated", PropertyInfo(Variant::OBJECT, "mesh", PROPERTY_HINT_RESOURCE_TYPE, "Mesh")));
 };
 
 void ARVRAnchor::set_anchor_id(int p_anchor_id) {
@@ -482,11 +506,11 @@ String ARVRAnchor::get_configuration_warning() const {
 	// must be child node of ARVROrigin!
 	ARVROrigin *origin = Object::cast_to<ARVROrigin>(get_parent());
 	if (origin == NULL) {
-		return TTR("ARVRAnchor must have an ARVROrigin node as its parent");
+		return TTR("ARVRAnchor must have an ARVROrigin node as its parent.");
 	};
 
 	if (anchor_id == 0) {
-		return TTR("The anchor id must not be 0 or this anchor will not be bound to an actual anchor");
+		return TTR("The anchor ID must not be 0 or this anchor won't be bound to an actual anchor.");
 	};
 
 	return String();
@@ -500,6 +524,10 @@ Plane ARVRAnchor::get_plane() const {
 
 	return plane;
 };
+
+Ref<Mesh> ARVRAnchor::get_mesh() const {
+	return mesh;
+}
 
 ARVRAnchor::ARVRAnchor() {
 	anchor_id = 0;
@@ -517,7 +545,7 @@ String ARVROrigin::get_configuration_warning() const {
 		return String();
 
 	if (tracked_camera == NULL)
-		return TTR("ARVROrigin requires an ARVRCamera child node");
+		return TTR("ARVROrigin requires an ARVRCamera child node.");
 
 	return String();
 };
@@ -555,6 +583,10 @@ void ARVROrigin::set_world_scale(float p_world_scale) {
 };
 
 void ARVROrigin::_notification(int p_what) {
+	// get our ARVRServer
+	ARVRServer *arvr_server = ARVRServer::get_singleton();
+	ERR_FAIL_NULL(arvr_server);
+
 	switch (p_what) {
 		case NOTIFICATION_ENTER_TREE: {
 			set_process_internal(true);
@@ -563,10 +595,6 @@ void ARVROrigin::_notification(int p_what) {
 			set_process_internal(false);
 		}; break;
 		case NOTIFICATION_INTERNAL_PROCESS: {
-			// get our ARVRServer
-			ARVRServer *arvr_server = ARVRServer::get_singleton();
-			ERR_FAIL_NULL(arvr_server);
-
 			// set our world origin to our node transform
 			arvr_server->set_world_origin(get_global_transform());
 
@@ -583,6 +611,14 @@ void ARVROrigin::_notification(int p_what) {
 		default:
 			break;
 	};
+
+	// send our notification to all active ARVR interfaces, they may need to react to it also
+	for (int i = 0; i < arvr_server->get_interface_count(); i++) {
+		Ref<ARVRInterface> interface = arvr_server->get_interface(i);
+		if (interface.is_valid() && interface->is_initialized()) {
+			interface->notification(p_what);
+		}
+	}
 };
 
 ARVROrigin::ARVROrigin() {

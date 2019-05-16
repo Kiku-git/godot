@@ -832,23 +832,22 @@ void Object::setvar(const Variant &p_key, const Variant &p_value, bool *r_valid)
 }
 
 Variant Object::callv(const StringName &p_method, const Array &p_args) {
+	const Variant **argptrs = NULL;
 
-	if (p_args.size() == 0) {
-		return call(p_method);
-	}
-
-	Vector<Variant> args;
-	args.resize(p_args.size());
-	Vector<const Variant *> argptrs;
-	argptrs.resize(p_args.size());
-
-	for (int i = 0; i < p_args.size(); i++) {
-		args.write[i] = p_args[i];
-		argptrs.write[i] = &args[i];
+	if (p_args.size() > 0) {
+		argptrs = (const Variant **)alloca(sizeof(Variant *) * p_args.size());
+		for (int i = 0; i < p_args.size(); i++) {
+			argptrs[i] = &p_args[i];
+		}
 	}
 
 	Variant::CallError ce;
-	return call(p_method, (const Variant **)argptrs.ptr(), p_args.size(), ce);
+	Variant ret = call(p_method, argptrs, p_args.size(), ce);
+	if (ce.error != Variant::CallError::CALL_OK) {
+		ERR_EXPLAIN("Error calling method from 'callv': " + Variant::get_call_error_text(this, p_method, argptrs, p_args.size(), ce));
+		ERR_FAIL_V(Variant());
+	}
+	return ret;
 }
 
 Variant Object::call(const StringName &p_name, VARIANT_ARG_DECLARE) {
@@ -1058,6 +1057,10 @@ Variant Object::get_meta(const String &p_name) const {
 
 	ERR_FAIL_COND_V(!metadata.has(p_name), Variant());
 	return metadata[p_name];
+}
+
+void Object::remove_meta(const String &p_name) {
+	metadata.erase(p_name);
 }
 
 Array Object::_get_property_list_bind() const {
@@ -1367,7 +1370,10 @@ Array Object::_get_incoming_connections() const {
 void Object::get_signal_list(List<MethodInfo> *p_signals) const {
 
 	if (!script.is_null()) {
-		Ref<Script>(script)->get_script_signal_list(p_signals);
+		Ref<Script> scr = script;
+		if (scr.is_valid()) {
+			scr->get_script_signal_list(p_signals);
+		}
 	}
 
 	ClassDB::get_signal_list(get_class_name(), p_signals);
@@ -1638,7 +1644,8 @@ void Object::_clear_internal_resource_paths(const Variant &p_var) {
 				_clear_internal_resource_paths(d[E->get()]);
 			}
 		} break;
-		default: {}
+		default: {
+		}
 	}
 }
 
@@ -1688,6 +1695,7 @@ void Object::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_script"), &Object::get_script);
 
 	ClassDB::bind_method(D_METHOD("set_meta", "name", "value"), &Object::set_meta);
+	ClassDB::bind_method(D_METHOD("remove_meta", "name"), &Object::remove_meta);
 	ClassDB::bind_method(D_METHOD("get_meta", "name"), &Object::get_meta);
 	ClassDB::bind_method(D_METHOD("has_meta", "name"), &Object::has_meta);
 	ClassDB::bind_method(D_METHOD("get_meta_list"), &Object::_get_meta_list_bind);
@@ -1939,8 +1947,8 @@ Object::Object() {
 	_class_ptr = NULL;
 	_block_signals = false;
 	_predelete_ok = 0;
-	_instance_ID = 0;
-	_instance_ID = ObjectDB::add_instance(this);
+	_instance_id = 0;
+	_instance_id = ObjectDB::add_instance(this);
 	_can_translate = true;
 	_is_queued_for_deletion = false;
 	instance_binding_count = 0;
@@ -1994,7 +2002,7 @@ Object::~Object() {
 	}
 
 	ObjectDB::remove_instance(this);
-	_instance_ID = 0;
+	_instance_id = 0;
 	_predelete_ok = 2;
 
 	if (!ScriptServer::are_languages_finished()) {
@@ -2042,10 +2050,10 @@ void ObjectDB::remove_instance(Object *p_object) {
 
 	rw_lock->write_unlock();
 }
-Object *ObjectDB::get_instance(ObjectID p_instance_ID) {
+Object *ObjectDB::get_instance(ObjectID p_instance_id) {
 
 	rw_lock->read_lock();
-	Object **obj = instances.getptr(p_instance_ID);
+	Object **obj = instances.getptr(p_instance_id);
 	rw_lock->read_unlock();
 
 	if (!obj)

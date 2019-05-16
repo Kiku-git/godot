@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<class name="SoftBody" inherits="MeshInstance" category="Core" version="3.1">
+<class name="SoftBody" inherits="MeshInstance" category="Core" version="3.2">
 	<brief_description>
 		A soft mesh physics body.
 	</brief_description>
@@ -8,8 +8,6 @@
 	</description>
 	<tutorials>
 	</tutorials>
-	<demos>
-	</demos>
 	<methods>
 		<method name="add_collision_exception_with">
 			<return type="void">

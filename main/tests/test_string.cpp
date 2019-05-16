@@ -33,6 +33,7 @@
 //#include "core/math/math_funcs.h"
 #include "core/io/ip_address.h"
 #include "core/os/os.h"
+#include "modules/regex/regex.h"
 #include <stdio.h>
 
 #include "test_string.h"
@@ -429,9 +430,20 @@ bool test_25() {
 
 bool test_26() {
 
-	//TODO: Do replacement RegEx test
-	return true;
-};
+	OS::get_singleton()->print("\n\nTest 26: RegEx substitution\n");
+
+	String s = "Double all the vowels.";
+
+	OS::get_singleton()->print("\tString: %ls\n", s.c_str());
+	OS::get_singleton()->print("\tRepeating instances of 'aeiou' once\n");
+
+	RegEx re("(?<vowel>[aeiou])");
+	s = re.sub(s, "$0$vowel", true);
+
+	OS::get_singleton()->print("\tResult: %ls\n", s.c_str());
+
+	return (s == "Doouublee aall thee vooweels.");
+}
 
 struct test_27_data {
 	char const *data;
@@ -1053,6 +1065,19 @@ bool test_33() {
 	return empty.parse_utf8(NULL, -1) == true;
 }
 
+bool test_34() {
+	OS::get_singleton()->print("\n\nTest 34: Cyrillic to_lower()\n");
+
+	String upper = L"АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+	String lower = L"абвгдеёжзийклмнопрстуфхцчшщъыьэюя";
+
+	String test = upper.to_lower();
+
+	bool state = test == lower;
+
+	return state;
+}
+
 typedef bool (*TestFunc)(void);
 
 TestFunc test_funcs[] = {
@@ -1090,6 +1115,7 @@ TestFunc test_funcs[] = {
 	test_31,
 	test_32,
 	test_33,
+	test_34,
 	0
 
 };

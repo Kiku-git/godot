@@ -195,6 +195,11 @@ MonoBoolean godot_icall_BuildInstance_get_UsingMonoMSBuildOnWindows() {
 #endif
 }
 
+MonoBoolean godot_icall_BuildInstance_get_PrintBuildOutput() {
+
+	return (bool)EDITOR_GET("mono/builds/print_build_output");
+}
+
 void GodotSharpBuilds::register_internal_calls() {
 
 	static bool registered = false;
@@ -205,6 +210,7 @@ void GodotSharpBuilds::register_internal_calls() {
 	mono_add_internal_call("GodotSharpTools.Build.BuildInstance::godot_icall_BuildInstance_get_MSBuildPath", (void *)godot_icall_BuildInstance_get_MSBuildPath);
 	mono_add_internal_call("GodotSharpTools.Build.BuildInstance::godot_icall_BuildInstance_get_MonoWindowsBinDir", (void *)godot_icall_BuildInstance_get_MonoWindowsBinDir);
 	mono_add_internal_call("GodotSharpTools.Build.BuildInstance::godot_icall_BuildInstance_get_UsingMonoMSBuildOnWindows", (void *)godot_icall_BuildInstance_get_UsingMonoMSBuildOnWindows);
+	mono_add_internal_call("GodotSharpTools.Build.BuildInstance::godot_icall_BuildInstance_get_PrintBuildOutput", (void *)godot_icall_BuildInstance_get_PrintBuildOutput);
 }
 
 void GodotSharpBuilds::show_build_error_dialog(const String &p_message) {
@@ -317,10 +323,13 @@ bool GodotSharpBuilds::make_api_assembly(APIAssembly::Type p_api_type) {
 	String api_sln_file = api_sln_dir.plus_file(API_SOLUTION_NAME ".sln");
 
 	if (!DirAccess::exists(api_sln_dir) || !FileAccess::exists(api_sln_file)) {
-		BindingsGenerator *gen = BindingsGenerator::get_singleton();
-		bool gen_verbose = OS::get_singleton()->is_stdout_verbose();
+		BindingsGenerator bindings_generator;
 
-		Error err = gen->generate_cs_api(api_sln_dir, gen_verbose);
+		if (!OS::get_singleton()->is_stdout_verbose()) {
+			bindings_generator.set_log_print_enabled(false);
+		}
+
+		Error err = bindings_generator.generate_cs_api(api_sln_dir);
 		if (err != OK) {
 			show_build_error_dialog("Failed to generate " API_SOLUTION_NAME " solution. Error: " + itos(err));
 			return false;
@@ -457,6 +466,8 @@ GodotSharpBuilds::GodotSharpBuilds() {
 			"," PROP_NAME_MSBUILD_VS
 #endif
 			"," PROP_NAME_XBUILD));
+
+	EDITOR_DEF("mono/builds/print_build_output", false);
 }
 
 GodotSharpBuilds::~GodotSharpBuilds() {

@@ -181,8 +181,8 @@ public:
 			}
 		}
 		// finally do the division to get sc and tc
-		sc = (Math::abs(sN) < CMP_EPSILON ? 0.0 : sN / sD);
-		tc = (Math::abs(tN) < CMP_EPSILON ? 0.0 : tN / tD);
+		sc = (Math::is_zero_approx(sN) ? 0.0 : sN / sD);
+		tc = (Math::is_zero_approx(tN) ? 0.0 : tN / tD);
 
 		// get the difference of the two closest points
 		Vector3 dP = w + (sc * u) - (tc * v); // = S1(sc) - S2(tc)
@@ -195,7 +195,7 @@ public:
 		Vector3 e2 = p_v2 - p_v0;
 		Vector3 h = p_dir.cross(e2);
 		real_t a = e1.dot(h);
-		if (a > -CMP_EPSILON && a < CMP_EPSILON) // parallel test
+		if (Math::is_zero_approx(a)) // parallel test
 			return false;
 
 		real_t f = 1.0 / a;
@@ -233,7 +233,7 @@ public:
 		Vector3 e2 = p_v2 - p_v0;
 		Vector3 h = rel.cross(e2);
 		real_t a = e1.dot(h);
-		if (a > -CMP_EPSILON && a < CMP_EPSILON) // parallel test
+		if (Math::is_zero_approx(a)) // parallel test
 			return false;
 
 		real_t f = 1.0 / a;
@@ -535,7 +535,7 @@ public:
 		// see http://paulbourke.net/geometry/pointlineplane/
 
 		const real_t denom = p_dir_b.y * p_dir_a.x - p_dir_b.x * p_dir_a.y;
-		if (Math::abs(denom) < CMP_EPSILON) { // parallel?
+		if (Math::is_zero_approx(denom)) { // parallel?
 			return false;
 		}
 
@@ -702,9 +702,11 @@ public:
 		/* if we can assume that the line segment starts outside the circle (e.g. for continuous time collision detection) then the following can be skipped and we can just return the equivalent of res1 */
 		sqrtterm = Math::sqrt(sqrtterm);
 		real_t res1 = (-b - sqrtterm) / (2 * a);
-		//real_t res2 = ( -b + sqrtterm ) / (2 * a);
+		real_t res2 = (-b + sqrtterm) / (2 * a);
 
-		return (res1 >= 0 && res1 <= 1) ? res1 : -1;
+		if (res1 >= 0 && res1 <= 1) return res1;
+		if (res2 >= 0 && res2 <= 1) return res2;
+		return -1;
 	}
 
 	static inline Vector<Vector3> clip_polygon(const Vector<Vector3> &polygon, const Plane &p_plane) {
@@ -949,6 +951,8 @@ public:
 		H.resize(k);
 		return H;
 	}
+
+	static Vector<Vector<Vector2> > decompose_polygon_in_convex(Vector<Point2> polygon);
 
 	static MeshData build_convex_mesh(const PoolVector<Plane> &p_planes);
 	static PoolVector<Plane> build_sphere_planes(real_t p_radius, int p_lats, int p_lons, Vector3::Axis p_axis = Vector3::AXIS_Z);

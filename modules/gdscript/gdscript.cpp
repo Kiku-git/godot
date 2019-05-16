@@ -226,7 +226,7 @@ void GDScript::get_script_method_list(List<MethodInfo> *p_list) const {
 
 	const GDScript *current = this;
 	while (current) {
-		for (const Map<StringName, GDScriptFunction *>::Element *E = member_functions.front(); E; E = E->next()) {
+		for (const Map<StringName, GDScriptFunction *>::Element *E = current->member_functions.front(); E; E = E->next()) {
 			GDScriptFunction *func = E->get();
 			MethodInfo mi;
 			mi.name = E->key();
@@ -597,7 +597,7 @@ Error GDScript::reload(bool p_keep_state) {
 			return err;
 		}
 	}
-#if DEBUG_ENABLED
+#ifdef DEBUG_ENABLED
 	for (const List<GDScriptWarning>::Element *E = parser.get_warnings().front(); E; E = E->next()) {
 		const GDScriptWarning &warning = E->get();
 		if (ScriptDebugger::get_singleton()) {
@@ -1945,6 +1945,10 @@ String GDScriptWarning::get_message() const {
 			CHECK_SYMBOLS(1);
 			return "The local variable '" + symbols[0] + "' is declared but never used in the block.";
 		} break;
+		case SHADOWED_VARIABLE: {
+			CHECK_SYMBOLS(2);
+			return "The local variable '" + symbols[0] + "' is shadowing an already defined variable at line " + symbols[1] + ".";
+		} break;
 		case UNUSED_CLASS_VARIABLE: {
 			CHECK_SYMBOLS(1);
 			return "The class variable '" + symbols[0] + "' is declared but never used in the script.";
@@ -1965,7 +1969,7 @@ String GDScriptWarning::get_message() const {
 			return "Assignment operation, but the function '" + symbols[0] + "()' returns void.";
 		} break;
 		case NARROWING_CONVERSION: {
-			return "Narrowing coversion (float is converted to int and lose precision).";
+			return "Narrowing conversion (float is converted to int and loses precision).";
 		} break;
 		case FUNCTION_MAY_YIELD: {
 			CHECK_SYMBOLS(1);
@@ -2048,6 +2052,7 @@ String GDScriptWarning::get_name_from_code(Code p_code) {
 		"UNASSIGNED_VARIABLE",
 		"UNASSIGNED_VARIABLE_OP_ASSIGN",
 		"UNUSED_VARIABLE",
+		"SHADOWED_VARIABLE",
 		"UNUSED_CLASS_VARIABLE",
 		"UNUSED_ARGUMENT",
 		"UNREACHABLE_CODE",

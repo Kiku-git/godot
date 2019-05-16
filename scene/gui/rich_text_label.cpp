@@ -711,7 +711,8 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 
 			} break;
 
-			default: {}
+			default: {
+			}
 		}
 
 		Item *itp = it;
@@ -752,6 +753,8 @@ void RichTextLabel::_scroll_changed(double) {
 	else
 		scroll_following = false;
 
+	scroll_updated = true;
+
 	update();
 }
 
@@ -777,7 +780,6 @@ void RichTextLabel::_update_scroll() {
 		main->first_invalid_line = 0; //invalidate ALL
 		_validate_line_caches(main);
 	}
-	scroll_updated = true;
 }
 
 void RichTextLabel::_notification(int p_what) {
@@ -1144,8 +1146,8 @@ void RichTextLabel::_gui_input(Ref<InputEvent> p_event) {
 				emit_signal("meta_hover_started", meta);
 			}
 		} else if (meta_hovering) {
-			emit_signal("meta_hover_ended", current_meta);
 			meta_hovering = NULL;
+			emit_signal("meta_hover_ended", current_meta);
 			current_meta = false;
 		}
 	}
@@ -2004,7 +2006,7 @@ bool RichTextLabel::search(const String &p_string, bool p_from_selection, bool p
 	Item *it = main;
 	int charidx = 0;
 
-	if (p_from_selection && selection.active && selection.enabled) {
+	if (p_from_selection && selection.active) {
 		it = selection.to;
 		charidx = selection.to_char + 1;
 	}

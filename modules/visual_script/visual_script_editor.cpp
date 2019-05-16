@@ -37,6 +37,7 @@
 #include "core/variant.h"
 #include "editor/editor_node.h"
 #include "editor/editor_resource_preview.h"
+#include "scene/main/viewport.h"
 #include "visual_script_expression.h"
 #include "visual_script_flow_control.h"
 #include "visual_script_func_nodes.h"
@@ -579,7 +580,7 @@ void VisualScriptEditor::_update_graph(int p_only_id) {
 			if (gnode->is_comment())
 				sbf = EditorNode::get_singleton()->get_theme_base()->get_theme()->get_stylebox("comment", "GraphNode");
 
-			Color c = sbf->get_border_color(MARGIN_TOP);
+			Color c = sbf->get_border_color();
 			c.a = 1;
 			if (EditorSettings::get_singleton()->get("interface/theme/use_graph_node_headers")) {
 				Color mono_color = ((c.r + c.g + c.b) / 3) < 0.7 ? Color(1.0, 1.0, 1.0) : Color(0.0, 0.0, 0.0);
@@ -1329,8 +1330,9 @@ void VisualScriptEditor::_input(const Ref<InputEvent> &p_event) {
 	}
 }
 
-void VisualScriptEditor::_generic_search() {
-	new_connect_node_select->select_from_visual_script(String(""), false);
+void VisualScriptEditor::_generic_search(String p_base_type) {
+	port_action_pos = graph->get_viewport()->get_mouse_position() - graph->get_global_position();
+	new_connect_node_select->select_from_visual_script(p_base_type, false);
 }
 
 void VisualScriptEditor::_members_gui_input(const Ref<InputEvent> &p_event) {
@@ -1785,7 +1787,6 @@ void VisualScriptEditor::drop_data_fw(const Point2 &p_point, const Variant &p_da
 				call->set_base_path(sn->get_path_to(node));
 				call->set_base_type(node->get_class());
 				n = call;
-
 				method_select->select_from_instance(node);
 				selecting_method_id = base_id;
 			}
@@ -2097,6 +2098,14 @@ void VisualScriptEditor::goto_line(int p_line, bool p_with_error) {
 			return;
 		}
 	}
+}
+
+void VisualScriptEditor::set_executing_line(int p_line) {
+	// todo: add a way to show which node is executing right now.
+}
+
+void VisualScriptEditor::clear_executing_line() {
+	// todo: add a way to show which node is executing right now.
 }
 
 void VisualScriptEditor::trim_trailing_whitespace() {
@@ -3054,10 +3063,10 @@ void VisualScriptEditor::_notification(int p_what) {
 			Ref<StyleBoxFlat> sb = tm->get_stylebox("frame", "GraphNode");
 			if (!sb.is_null()) {
 				Ref<StyleBoxFlat> frame_style = sb->duplicate();
-				Color c = sb->get_border_color(MARGIN_TOP);
+				Color c = sb->get_border_color();
 				Color cn = E->get().second;
 				cn.a = c.a;
-				frame_style->set_border_color_all(cn);
+				frame_style->set_border_color(cn);
 				node_styles[E->get().first] = frame_style;
 			}
 		}
@@ -3146,7 +3155,7 @@ void VisualScriptEditor::_menu_option(int p_what) {
 
 		} break;
 		case EDIT_FIND_NODE_TYPE: {
-			_generic_search();
+			_generic_search(script->get_instance_base_type());
 		} break;
 		case EDIT_COPY_NODES:
 		case EDIT_CUT_NODES: {
@@ -3564,7 +3573,7 @@ VisualScriptEditor::VisualScriptEditor() {
 	graph->connect("scroll_offset_changed", this, "_graph_ofs_changed");
 
 	select_func_text = memnew(Label);
-	select_func_text->set_text(TTR("Select or create a function to edit graph"));
+	select_func_text->set_text(TTR("Select or create a function to edit its graph."));
 	select_func_text->set_align(Label::ALIGN_CENTER);
 	select_func_text->set_valign(Label::VALIGN_CENTER);
 	select_func_text->set_h_size_flags(SIZE_EXPAND_FILL);

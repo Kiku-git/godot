@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<class name="Resource" inherits="Reference" category="Core" version="3.1">
+<class name="Resource" inherits="Reference" category="Core" version="3.2">
 	<brief_description>
 		Base class for all resources.
 	</brief_description>
@@ -9,8 +9,6 @@
 	<tutorials>
 		<link>https://docs.godotengine.org/en/stable/getting_started/step_by_step/resources.html</link>
 	</tutorials>
-	<demos>
-	</demos>
 	<methods>
 		<method name="_setup_local_to_scene" qualifiers="virtual">
 			<return type="void">
@@ -52,7 +50,7 @@
 			<argument index="0" name="path" type="String">
 			</argument>
 			<description>
-				Sets the path of the resource. Differs from [code]set_path()[/code], if another [code]Resource[/code] exists with "path" it over-takes it, instead of failing.
+				Sets the path of the resource. Differs from [code]set_path()[/code], if another [Resource] exists with "path" it over-takes it, instead of failing.
 			</description>
 		</method>
 	</methods>

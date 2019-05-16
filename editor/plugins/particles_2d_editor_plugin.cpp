@@ -375,6 +375,7 @@ Particles2DEditorPlugin::Particles2DEditorPlugin(EditorNode *p_node) {
 	menu->get_popup()->add_separator();
 	menu->get_popup()->add_item(TTR("Convert to CPUParticles"), MENU_OPTION_CONVERT_TO_CPU_PARTICLES);
 	menu->set_text(TTR("Particles"));
+	menu->set_switch_on_hover(true);
 	toolbar->add_child(menu);
 
 	file = memnew(EditorFileDialog);
@@ -408,7 +409,7 @@ Particles2DEditorPlugin::Particles2DEditorPlugin(EditorNode *p_node) {
 	generate_visibility_rect->connect("confirmed", this, "_generate_visibility_rect");
 
 	emission_mask = memnew(ConfirmationDialog);
-	emission_mask->set_title(TTR("Generate Visibility Rect"));
+	emission_mask->set_title(TTR("Load Emission Mask"));
 	VBoxContainer *emvb = memnew(VBoxContainer);
 	emission_mask->add_child(emvb);
 	emission_mask_mode = memnew(OptionButton);

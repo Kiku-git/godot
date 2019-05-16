@@ -21,12 +21,13 @@
 # nitenook <admin@alterbaum.net>, 2018, 2019.
 # Rob Matych <robertsmatych@gmail.com>, 2018.
 # Hidetsugu Takahashi <manzyun@gmail.com>, 2019.
+# Wataru Onuki <watonu@magadou.com>, 2019.
 msgid ""
 msgstr ""
 "Project-Id-Version: Godot Engine editor\n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2019-03-01 11:59+0000\n"
-"Last-Translator: nitenook <admin@alterbaum.net>\n"
+"PO-Revision-Date: 2019-04-19 16:33+0000\n"
+"Last-Translator: Wataru Onuki <watonu@magadou.com>\n"
 "Language-Team: Japanese <https://hosted.weblate.org/projects/godot-engine/"
 "godot/ja/>\n"
 "Language: ja\n"
@@ -34,7 +35,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 3.5-dev\n"
+"X-Generator: Weblate 3.6-dev\n"
 
 #: core/math/expression.cpp modules/gdscript/gdscript_functions.cpp
 #: modules/visual_script/visual_script_builtin_funcs.cpp
@@ -101,14 +102,12 @@ msgid "Delete Selected Key(s)"
 msgstr "選択中のキーを削除"
 
 #: editor/animation_bezier_editor.cpp
-#, fuzzy
 msgid "Add Bezier Point"
-msgstr "点を追加"
+msgstr "ベジェポイントを追加"
 
 #: editor/animation_bezier_editor.cpp
-#, fuzzy
 msgid "Move Bezier Points"
-msgstr "ポイントを移動"
+msgstr "ベジェポイントを移動"
 
 #: editor/animation_bezier_editor.cpp editor/animation_track_editor.cpp
 msgid "Anim Duplicate Keys"
@@ -139,9 +138,8 @@ msgid "Anim Change Call"
 msgstr "アニメーション呼出しの変更"
 
 #: editor/animation_track_editor.cpp
-#, fuzzy
 msgid "Change Animation Length"
-msgstr "アニメーションのループを変更"
+msgstr "アニメーションの長さを変更"
 
 #: editor/animation_track_editor.cpp
 #: editor/plugins/sprite_frames_editor_plugin.cpp
@@ -447,12 +445,21 @@ msgstr ""
 "ノードごとにトラックをグループ化するか、プレーンなリストとして表示します。"
 
 #: editor/animation_track_editor.cpp
-msgid "Snap (s): "
-msgstr "スナップ (秒): "
+#, fuzzy
+msgid "Snap:"
+msgstr "スナップ"
 
 #: editor/animation_track_editor.cpp
 msgid "Animation step value."
 msgstr "アニメーションステップの値。"
+
+#: editor/animation_track_editor.cpp
+msgid "Seconds"
+msgstr ""
+
+#: editor/animation_track_editor.cpp
+msgid "FPS"
+msgstr "フレームレート"
 
 #: editor/animation_track_editor.cpp editor/editor_properties.cpp
 #: editor/plugins/polygon_2d_editor_plugin.cpp
@@ -1388,10 +1395,33 @@ msgid "Packing"
 msgstr "パックする"
 
 #: editor/editor_export.cpp
+#, fuzzy
 msgid ""
-"Target platform requires 'ETC' texture compression for GLES2. Enable support "
-"in Project Settings."
+"Target platform requires 'ETC' texture compression for GLES2. Enable 'Import "
+"Etc' in Project Settings."
 msgstr ""
+"対象プラットフォームではGLES2のために'ETC'テクスチャ圧縮が必要です。プロジェ"
+"クト設定より有効にしてください。"
+
+#: editor/editor_export.cpp
+#, fuzzy
+msgid ""
+"Target platform requires 'ETC2' texture compression for GLES3. Enable "
+"'Import Etc 2' in Project Settings."
+msgstr ""
+"対象プラットフォームではGLES2のために'ETC'テクスチャ圧縮が必要です。プロジェ"
+"クト設定より有効にしてください。"
+
+#: editor/editor_export.cpp
+#, fuzzy
+msgid ""
+"Target platform requires 'ETC' texture compression for the driver fallback "
+"to GLES2.\n"
+"Enable 'Import Etc' in Project Settings, or disable 'Driver Fallback "
+"Enabled'."
+msgstr ""
+"対象プラットフォームではGLES2のために'ETC'テクスチャ圧縮が必要です。プロジェ"
+"クト設定より有効にしてください。"
 
 #: editor/editor_export.cpp platform/android/export/export.cpp
 #: platform/iphone/export/export.cpp platform/javascript/export/export.cpp
@@ -1438,7 +1468,7 @@ msgstr "ファイルマネージャーで表示"
 msgid "New Folder..."
 msgstr "新規フォルダ..."
 
-#: editor/editor_file_dialog.cpp
+#: editor/editor_file_dialog.cpp scene/gui/file_dialog.cpp
 msgid "Refresh"
 msgstr "再読込"
 
@@ -1513,9 +1543,32 @@ msgstr "お気に入りを上へ"
 msgid "Move Favorite Down"
 msgstr "お気に入りを下へ"
 
-#: editor/editor_file_dialog.cpp scene/gui/file_dialog.cpp
+#: editor/editor_file_dialog.cpp
+#, fuzzy
+msgid "Previous Folder"
+msgstr "前の床面"
+
+#: editor/editor_file_dialog.cpp
+#, fuzzy
+msgid "Next Folder"
+msgstr "次の床面"
+
+#: editor/editor_file_dialog.cpp
 msgid "Go to parent folder"
 msgstr "親フォルダへ"
+
+#: editor/editor_file_dialog.cpp
+#, fuzzy
+msgid "(Un)favorite current folder."
+msgstr "フォルダを作成できませんでした。"
+
+#: editor/editor_file_dialog.cpp editor/filesystem_dock.cpp
+msgid "View items as a grid of thumbnails."
+msgstr "アイテムをサムネイルでグリッド表示する。"
+
+#: editor/editor_file_dialog.cpp editor/filesystem_dock.cpp
+msgid "View items as a list."
+msgstr "アイテムを一覧で表示する。"
 
 #: editor/editor_file_dialog.cpp scene/gui/file_dialog.cpp
 msgid "Directories & Files:"
@@ -1739,14 +1792,24 @@ msgstr "出力をクリア"
 msgid "Project export failed with error code %d."
 msgstr "プロジェクトのエクスポートがエラーコード %d で失敗しました。"
 
-#: editor/editor_node.cpp editor/plugins/animation_player_editor_plugin.cpp
-msgid "Error saving resource!"
-msgstr "リソース保存中のエラー！"
+#: editor/editor_node.cpp
+msgid "Imported resources can't be saved."
+msgstr ""
 
 #: editor/editor_node.cpp editor/plugins/script_editor_plugin.cpp
 #: scene/gui/dialogs.cpp
 msgid "OK"
 msgstr "OK"
+
+#: editor/editor_node.cpp editor/plugins/animation_player_editor_plugin.cpp
+msgid "Error saving resource!"
+msgstr "リソース保存中のエラー！"
+
+#: editor/editor_node.cpp
+msgid ""
+"This resource can't be saved because it does not belong to the edited scene. "
+"Make it unique first."
+msgstr ""
 
 #: editor/editor_node.cpp editor/plugins/animation_player_editor_plugin.cpp
 msgid "Save Resource As..."
@@ -1806,6 +1869,8 @@ msgid ""
 "This scene can't be saved because there is a cyclic instancing inclusion.\n"
 "Please resolve it and then attempt to save again."
 msgstr ""
+"このシーンにはインスタンスの循環参照が含まれているため保存できません。\n"
+"それをまず解消してから、また保存してみてください。"
 
 #: editor/editor_node.cpp
 msgid ""
@@ -2273,7 +2338,7 @@ msgstr "プロジェクト"
 
 #: editor/editor_node.cpp
 msgid "Project Settings"
-msgstr "プロジェクトの設定"
+msgstr "プロジェクト設定"
 
 #: editor/editor_node.cpp editor/project_export.cpp
 msgid "Export"
@@ -2715,6 +2780,8 @@ msgid ""
 "The selected resource (%s) does not match any type expected for this "
 "property (%s)."
 msgstr ""
+"選択されたリソース (%s) は、このプロパティ (%s) が求める型に一致していませ"
+"ん。"
 
 #: editor/editor_properties.cpp
 msgid ""
@@ -3056,14 +3123,6 @@ msgid "Cannot navigate to '%s' as it has not been found in the file system!"
 msgstr "ファイルシステム上で '%s' を見つけられないため移動できません！"
 
 #: editor/filesystem_dock.cpp
-msgid "View items as a grid of thumbnails."
-msgstr "アイテムをサムネイルでグリッド表示する。"
-
-#: editor/filesystem_dock.cpp
-msgid "View items as a list."
-msgstr "アイテムを一覧で表示する。"
-
-#: editor/filesystem_dock.cpp
 msgid "Status: Import of file failed. Please fix file and reimport manually."
 msgstr ""
 "ステータス: ファイルのインポートに失敗しました。ファイルを修正して手動で再イ"
@@ -3143,7 +3202,7 @@ msgstr "依存関係の編集..."
 
 #: editor/filesystem_dock.cpp
 msgid "View Owners..."
-msgstr "所有者を見る..."
+msgstr "オーナーを見る..."
 
 #: editor/filesystem_dock.cpp editor/plugins/animation_player_editor_plugin.cpp
 msgid "Rename..."
@@ -3199,10 +3258,6 @@ msgstr "分割モード切り替え"
 #: editor/filesystem_dock.cpp
 msgid "Search files"
 msgstr "ファイル検索"
-
-#: editor/filesystem_dock.cpp
-msgid "Instance the selected scene(s) as child of the selected node."
-msgstr "選択したシーンを選択したノードの子としてインスタンス化します。"
 
 #: editor/filesystem_dock.cpp
 msgid ""
@@ -3794,6 +3849,11 @@ msgstr "新規アニメーション"
 #: editor/plugins/visual_shader_editor_plugin.cpp
 #, fuzzy
 msgid "Delete Node"
+msgstr "ノードを削除"
+
+#: editor/plugins/animation_blend_tree_editor_plugin.cpp
+#: editor/scene_tree_dock.cpp
+msgid "Delete Node(s)"
 msgstr "ノードを削除"
 
 #: editor/plugins/animation_blend_tree_editor_plugin.cpp
@@ -4626,9 +4686,8 @@ msgid "Click to change object's rotation pivot."
 msgstr "クリックでオブジェクトの回転ピボットを変更する。"
 
 #: editor/plugins/canvas_item_editor_plugin.cpp
-#, fuzzy
 msgid "Pan Mode"
-msgstr "パン・モード"
+msgstr "パンモード"
 
 #: editor/plugins/canvas_item_editor_plugin.cpp
 msgid "Toggle snapping."
@@ -4782,8 +4841,34 @@ msgid "Layout"
 msgstr "レイアウト"
 
 #: editor/plugins/canvas_item_editor_plugin.cpp
-msgid "Insert keys."
-msgstr "キーを挿入する。"
+msgid "Translation mask for inserting keys."
+msgstr ""
+
+#: editor/plugins/canvas_item_editor_plugin.cpp
+msgid "Rotation mask for inserting keys."
+msgstr ""
+
+#: editor/plugins/canvas_item_editor_plugin.cpp
+msgid "Scale mask for inserting keys."
+msgstr ""
+
+#: editor/plugins/canvas_item_editor_plugin.cpp
+#, fuzzy
+msgid "Insert keys (based on mask)."
+msgstr "キーを (既存のトラックに) 挿入"
+
+#: editor/plugins/canvas_item_editor_plugin.cpp
+msgid ""
+"Auto insert keys when objects are translated, rotated on scaled (based on "
+"mask).\n"
+"Keys are only added to existing tracks, no new tracks will be created.\n"
+"Keys must be inserted manually for the first time."
+msgstr ""
+
+#: editor/plugins/canvas_item_editor_plugin.cpp
+#, fuzzy
+msgid "Auto Insert Key"
+msgstr "アニメーションキーを挿入"
 
 #: editor/plugins/canvas_item_editor_plugin.cpp
 #, fuzzy
@@ -4858,6 +4943,55 @@ msgstr "ポリゴンを編集（点を除去）"
 #, fuzzy
 msgid "Set Handle"
 msgstr "ハンドルを設定する"
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+msgid "Error loading image:"
+msgstr "画像読み込みエラー:"
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+msgid "No pixels with transparency > 128 in image..."
+msgstr "画像内に透明度が128以上のピクセルがありません..."
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+#, fuzzy
+msgid "Load Emission Mask"
+msgstr "発光(Emission)マスクを読み込む"
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+#, fuzzy
+msgid "Clear Emission Mask"
+msgstr "発光(Emission)マスクをクリア"
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_editor_plugin.cpp
+msgid "Particles"
+msgstr "パーティクル"
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+msgid "Generated Point Count:"
+msgstr "生成したポイントの数:"
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+msgid "Emission Mask"
+msgstr "発光(Emission)マスク"
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+#, fuzzy
+msgid "Capture from Pixel"
+msgstr "ピクセルから取得"
+
+#: editor/plugins/cpu_particles_2d_editor_plugin.cpp
+#: editor/plugins/particles_2d_editor_plugin.cpp
+msgid "Emission Colors"
+msgstr "発光(Emission)色"
 
 #: editor/plugins/cpu_particles_editor_plugin.cpp
 msgid "CPUParticles"
@@ -5227,31 +5361,13 @@ msgid "Generating Visibility Rect"
 msgstr "可視性の矩形を生成"
 
 #: editor/plugins/particles_2d_editor_plugin.cpp
-msgid "Can only set point into a ParticlesMaterial process material"
-msgstr ""
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-msgid "Error loading image:"
-msgstr "画像読み込みエラー:"
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-msgid "No pixels with transparency > 128 in image..."
-msgstr "画像内に透明度が128以上のピクセルがありません..."
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
 #, fuzzy
 msgid "Generate Visibility Rect"
 msgstr "可視性の矩形を生成"
 
 #: editor/plugins/particles_2d_editor_plugin.cpp
-#, fuzzy
-msgid "Load Emission Mask"
-msgstr "発光(Emission)マスクを読み込む"
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-#, fuzzy
-msgid "Clear Emission Mask"
-msgstr "発光(Emission)マスクをクリア"
+msgid "Can only set point into a ParticlesMaterial process material"
+msgstr ""
 
 #: editor/plugins/particles_2d_editor_plugin.cpp
 #: editor/plugins/particles_editor_plugin.cpp
@@ -5260,30 +5376,8 @@ msgstr "CPUパーティクルに変換"
 
 #: editor/plugins/particles_2d_editor_plugin.cpp
 #: editor/plugins/particles_editor_plugin.cpp
-msgid "Particles"
-msgstr "パーティクル"
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-msgid "Generated Point Count:"
-msgstr "生成したポイントの数:"
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-#: editor/plugins/particles_editor_plugin.cpp
 msgid "Generation Time (sec):"
 msgstr "生成時間 (秒):"
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-msgid "Emission Mask"
-msgstr "発光(Emission)マスク"
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-#, fuzzy
-msgid "Capture from Pixel"
-msgstr "ピクセルから取得"
-
-#: editor/plugins/particles_2d_editor_plugin.cpp
-msgid "Emission Colors"
-msgstr "発光(Emission)色"
 
 #: editor/plugins/particles_editor_plugin.cpp
 #, fuzzy
@@ -5338,13 +5432,13 @@ msgid "Generating AABB"
 msgstr "AABBを生成中"
 
 #: editor/plugins/particles_editor_plugin.cpp
-msgid "Generate AABB"
-msgstr "軸平行境界ボックス（AABB)を生成"
-
-#: editor/plugins/particles_editor_plugin.cpp
 #, fuzzy
 msgid "Generate Visibility AABB"
 msgstr "可視性の軸平行境界ボックスを生成"
+
+#: editor/plugins/particles_editor_plugin.cpp
+msgid "Generate AABB"
+msgstr "軸平行境界ボックス（AABB)を生成"
 
 #: editor/plugins/path_2d_editor_plugin.cpp
 msgid "Remove Point from Curve"
@@ -5825,7 +5919,8 @@ msgid "Save Theme As..."
 msgstr "テーマを名前をつけて保存..."
 
 #: editor/plugins/script_editor_plugin.cpp
-msgid " Class Reference"
+#, fuzzy
+msgid "%s Class Reference"
 msgstr " クラスリファレンス"
 
 #: editor/plugins/script_editor_plugin.cpp
@@ -5956,6 +6051,14 @@ msgid "Open Godot online documentation"
 msgstr "Godotのオンライン文書を開く"
 
 #: editor/plugins/script_editor_plugin.cpp
+msgid "Request Docs"
+msgstr ""
+
+#: editor/plugins/script_editor_plugin.cpp
+msgid "Help improve the Godot documentation by giving feedback"
+msgstr ""
+
+#: editor/plugins/script_editor_plugin.cpp
 msgid "Search the reference documentation."
 msgstr "リファレンス文書を探す."
 
@@ -5968,9 +6071,8 @@ msgid "Go to next edited document."
 msgstr "次の編集したドキュメントへ移動。"
 
 #: editor/plugins/script_editor_plugin.cpp
-#, fuzzy
 msgid "Discard"
-msgstr "離散"
+msgstr "破棄"
 
 #: editor/plugins/script_editor_plugin.cpp
 #, fuzzy
@@ -6202,7 +6304,7 @@ msgstr "平行投影"
 
 #: editor/plugins/spatial_editor_plugin.cpp
 msgid "Perspective"
-msgstr "透視投影（遠近法）"
+msgstr "透視投影"
 
 #: editor/plugins/spatial_editor_plugin.cpp
 #, fuzzy
@@ -6340,9 +6442,8 @@ msgid "This operation requires a single selected node."
 msgstr "一つノードを指定しないと、この操作はできません"
 
 #: editor/plugins/spatial_editor_plugin.cpp
-#, fuzzy
 msgid "Lock View Rotation"
-msgstr "情報を表示"
+msgstr "ビューの回転を固定"
 
 #: editor/plugins/spatial_editor_plugin.cpp
 msgid "Display Normal"
@@ -6550,7 +6651,7 @@ msgstr "トランスフォーム"
 
 #: editor/plugins/spatial_editor_plugin.cpp
 msgid "Snap object to floor"
-msgstr ""
+msgstr "オブジェクトを底面にスナップ"
 
 #: editor/plugins/spatial_editor_plugin.cpp
 #, fuzzy
@@ -6587,7 +6688,7 @@ msgstr "ギズモ"
 
 #: editor/plugins/spatial_editor_plugin.cpp
 msgid "View Origin"
-msgstr "原点を見る"
+msgstr "原点の表示"
 
 #: editor/plugins/spatial_editor_plugin.cpp
 msgid "View Grid"
@@ -6667,6 +6768,26 @@ msgstr ""
 
 #: editor/plugins/sprite_editor_plugin.cpp
 #, fuzzy
+msgid "Create Mesh2D"
+msgstr "アウトラインメッシュを生成"
+
+#: editor/plugins/sprite_editor_plugin.cpp
+#, fuzzy
+msgid "Create Polygon2D"
+msgstr "Polygon3Dを生成"
+
+#: editor/plugins/sprite_editor_plugin.cpp
+#, fuzzy
+msgid "Create CollisionPolygon2D"
+msgstr "コリジョン ポリゴンを生成"
+
+#: editor/plugins/sprite_editor_plugin.cpp
+#, fuzzy
+msgid "Create LightOccluder2D"
+msgstr "オクルーダーポリゴンを生成"
+
+#: editor/plugins/sprite_editor_plugin.cpp
+#, fuzzy
 msgid "Sprite is empty!"
 msgstr "保存するパスがありません!"
 
@@ -6679,17 +6800,40 @@ msgid "Invalid geometry, can't replace by mesh."
 msgstr ""
 
 #: editor/plugins/sprite_editor_plugin.cpp
+msgid "Invalid geometry, can't create polygon."
+msgstr ""
+
+#: editor/plugins/sprite_editor_plugin.cpp
+msgid "Invalid geometry, can't create collision polygon."
+msgstr ""
+
+#: editor/plugins/sprite_editor_plugin.cpp
+msgid "Invalid geometry, can't create light occluder."
+msgstr ""
+
+#: editor/plugins/sprite_editor_plugin.cpp
 msgid "Sprite"
 msgstr "スプライト"
 
 #: editor/plugins/sprite_editor_plugin.cpp
-msgid "Convert to 2D Mesh"
+#, fuzzy
+msgid "Convert to Mesh2D"
 msgstr "2Dメッシュに変換"
 
 #: editor/plugins/sprite_editor_plugin.cpp
 #, fuzzy
-msgid "Create 2D Mesh"
-msgstr "アウトラインメッシュを生成"
+msgid "Convert to Polygon2D"
+msgstr "ポリゴンを移動"
+
+#: editor/plugins/sprite_editor_plugin.cpp
+#, fuzzy
+msgid "Create CollisionPolygon2D Sibling"
+msgstr "コリジョン ポリゴンを生成"
+
+#: editor/plugins/sprite_editor_plugin.cpp
+#, fuzzy
+msgid "Create LightOccluder2D Sibling"
+msgstr "オクルーダーポリゴンを生成"
 
 #: editor/plugins/sprite_editor_plugin.cpp
 msgid "Simplification: "
@@ -7070,6 +7214,24 @@ msgid "Merge from Scene"
 msgstr "シーンからマージ"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
+#, fuzzy
+msgid "Next Coordinate"
+msgstr "次の床面"
+
+#: editor/plugins/tile_set_editor_plugin.cpp
+msgid "Select the next shape, subtile, or Tile."
+msgstr ""
+
+#: editor/plugins/tile_set_editor_plugin.cpp
+#, fuzzy
+msgid "Previous Coordinate"
+msgstr "前の床面"
+
+#: editor/plugins/tile_set_editor_plugin.cpp
+msgid "Select the previous shape, subtile, or Tile."
+msgstr ""
+
+#: editor/plugins/tile_set_editor_plugin.cpp
 msgid "Copy bitmask."
 msgstr ""
 
@@ -7220,6 +7382,16 @@ msgid "Clear Tile Bitmask"
 msgstr "タイル ビットマスクをクリア"
 
 #: editor/plugins/tile_set_editor_plugin.cpp
+#, fuzzy
+msgid "Make Polygon Concave"
+msgstr "ポリゴンを移動"
+
+#: editor/plugins/tile_set_editor_plugin.cpp
+#, fuzzy
+msgid "Make Polygon Convex"
+msgstr "ポリゴンを移動"
+
+#: editor/plugins/tile_set_editor_plugin.cpp
 msgid "Remove Tile"
 msgstr "タイルを除去"
 
@@ -7281,6 +7453,11 @@ msgid "Duplicate Nodes"
 msgstr "ノードを複製"
 
 #: editor/plugins/visual_shader_editor_plugin.cpp
+#, fuzzy
+msgid "Delete Nodes"
+msgstr "ノードを削除"
+
+#: editor/plugins/visual_shader_editor_plugin.cpp
 msgid "Visual Shader Input Type Changed"
 msgstr ""
 
@@ -7330,6 +7507,8 @@ msgid ""
 "Failed to export the project for platform '%s'.\n"
 "Export templates seem to be missing or invalid."
 msgstr ""
+"プラットフォーム '%s' へのプロジェクトのエクスポートに失敗しました。\n"
+"エクスポート用テンプレートが存在しないか、あるいは異常であるようです。"
 
 #: editor/project_export.cpp
 msgid ""
@@ -7337,6 +7516,9 @@ msgid ""
 "This might be due to a configuration issue in the export preset or your "
 "export settings."
 msgstr ""
+"プラットフォーム '%s' へのプロジェクトのエクスポートに失敗しました。\n"
+"エクスポート用プリセットあるいはエクスポート設定に問題がある可能性がありま"
+"す。"
 
 #: editor/project_export.cpp
 #, fuzzy
@@ -7347,6 +7529,11 @@ msgstr "離した"
 #, fuzzy
 msgid "Exporting All"
 msgstr "%sにエクスポート中"
+
+#: editor/project_export.cpp
+#, fuzzy
+msgid "The given export path doesn't exist:"
+msgstr "存在しないパスです。"
 
 #: editor/project_export.cpp
 msgid "Export templates for this platform are missing/corrupted:"
@@ -7639,9 +7826,8 @@ msgid "Unnamed Project"
 msgstr "名無しのプロジェクト"
 
 #: editor/project_manager.cpp
-#, fuzzy
 msgid "Can't open project at '%s'."
-msgstr "プロジェクトを開けません"
+msgstr "次の場所のプロジェクトを開けません '%s'。"
 
 #: editor/project_manager.cpp
 msgid "Are you sure to open more than one project?"
@@ -7686,7 +7872,6 @@ msgid ""
 msgstr ""
 
 #: editor/project_manager.cpp
-#, fuzzy
 msgid ""
 "Can't run project: no main scene defined.\n"
 "Please edit the project and set the main scene in \"Project Settings\" under "
@@ -7694,7 +7879,7 @@ msgid ""
 msgstr ""
 "選択したシーン '%s' は、シーン ファイルではありません、有効なものを選択してい"
 "ますか？\n"
-"'アプリケーション' カテゴリの下の'プロジェクトの設定'で変更できます。"
+"'アプリケーション' カテゴリの下の'プロジェクト設定'で変更できます。"
 
 #: editor/project_manager.cpp
 msgid ""
@@ -8522,10 +8707,6 @@ msgstr "継承をクリア"
 #: editor/scene_tree_dock.cpp
 msgid "Open documentation"
 msgstr "ドキュメントを開く"
-
-#: editor/scene_tree_dock.cpp
-msgid "Delete Node(s)"
-msgstr "ノードを削除"
 
 #: editor/scene_tree_dock.cpp
 msgid "Add Child Node"
@@ -10165,6 +10346,12 @@ msgstr ""
 "関数の CollisionShape の形状を指定する必要があります。それのためのシェイプリ"
 "ソースを作成してください!"
 
+#: scene/3d/collision_shape.cpp
+msgid ""
+"Plane shapes don't work well and will be removed in future versions. Please "
+"don't use them."
+msgstr ""
+
 #: scene/3d/cpu_particles.cpp
 #, fuzzy
 msgid "Nothing is visible because no mesh has been assigned."
@@ -10180,6 +10367,12 @@ msgstr ""
 #, fuzzy
 msgid "Plotting Meshes"
 msgstr "イメージを配置(Blit)"
+
+#: scene/3d/gi_probe.cpp
+msgid ""
+"GIProbes are not supported by the GLES2 video driver.\n"
+"Use a BakedLightmap instead."
+msgstr ""
 
 #: scene/3d/navigation_mesh.cpp
 msgid "A NavigationMesh resource must be set or created for this node to work."
@@ -10346,6 +10539,14 @@ msgstr ""
 msgid "Add current color as a preset."
 msgstr "現在の色をプリセットとして追加"
 
+#: scene/gui/container.cpp
+msgid ""
+"Container by itself serves no purpose unless a script configures it's "
+"children placement behavior.\n"
+"If you dont't intend to add a script, then please use a plain 'Control' node "
+"instead."
+msgstr ""
+
 #: scene/gui/dialogs.cpp
 msgid "Alert!"
 msgstr "警告!"
@@ -10353,6 +10554,11 @@ msgstr "警告!"
 #: scene/gui/dialogs.cpp
 msgid "Please Confirm..."
 msgstr "確認..."
+
+#: scene/gui/file_dialog.cpp
+#, fuzzy
+msgid "Go to parent folder."
+msgstr "親フォルダへ"
 
 #: scene/gui/popup.cpp
 msgid ""
@@ -10366,7 +10572,7 @@ msgstr ""
 
 #: scene/gui/range.cpp
 msgid "If exp_edit is true min_value must be > 0."
-msgstr ""
+msgstr "exp_edit がtrueの場合、min_value は0より大きい必要があります。"
 
 #: scene/gui/scroll_container.cpp
 msgid ""
@@ -10392,6 +10598,7 @@ msgstr ""
 "いる環境(Environment)は読み込めませんでした."
 
 #: scene/main/viewport.cpp
+#, fuzzy
 msgid ""
 "This viewport is not set as render target. If you intend for it to display "
 "its contents directly to the screen, make it a child of a Control so it can "
@@ -10440,8 +10647,14 @@ msgstr "uniform への割り当て。"
 msgid "Varyings can only be assigned in vertex function."
 msgstr "Varyingは頂点関数にのみ割り当てることができます。"
 
-#~ msgid "FPS"
-#~ msgstr "フレームレート"
+#~ msgid "Snap (s): "
+#~ msgstr "スナップ (秒): "
+
+#~ msgid "Insert keys."
+#~ msgstr "キーを挿入する。"
+
+#~ msgid "Instance the selected scene(s) as child of the selected node."
+#~ msgstr "選択したシーンを選択したノードの子としてインスタンス化します。"
 
 #~ msgid "Warnings:"
 #~ msgstr "警告:"

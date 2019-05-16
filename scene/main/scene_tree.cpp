@@ -369,8 +369,7 @@ void SceneTree::set_group_flags(uint32_t p_call_flags, const StringName &p_group
 }
 
 void SceneTree::call_group(const StringName &p_group, const StringName &p_function, VARIANT_ARG_DECLARE) {
-
-	call_group_flags(0, p_group, VARIANT_ARG_PASS);
+	call_group_flags(0, p_group, p_function, VARIANT_ARG_PASS);
 }
 
 void SceneTree::notify_group(const StringName &p_group, int p_notification) {
@@ -658,12 +657,14 @@ void SceneTree::_notification(int p_notification) {
 		} break;
 		case NOTIFICATION_TRANSLATION_CHANGED: {
 			if (!Engine::get_singleton()->is_editor_hint()) {
-				get_root()->propagate_notification(Node::NOTIFICATION_TRANSLATION_CHANGED);
+				get_root()->propagate_notification(p_notification);
 			}
 		} break;
 		case NOTIFICATION_WM_UNFOCUS_REQUEST: {
 
 			notify_group_flags(GROUP_CALL_REALTIME | GROUP_CALL_MULTILEVEL, "input", NOTIFICATION_WM_UNFOCUS_REQUEST);
+
+			get_root()->propagate_notification(p_notification);
 
 		} break;
 
@@ -1158,7 +1159,7 @@ void SceneTree::_update_root_rect() {
 		WARN_PRINT("Font oversampling only works with the resize modes 'Keep Width', 'Keep Height', and 'Expand'.");
 	}
 
-	if (stretch_aspect == STRETCH_ASPECT_IGNORE || ABS(viewport_aspect - video_mode_aspect) < CMP_EPSILON) {
+	if (stretch_aspect == STRETCH_ASPECT_IGNORE || Math::is_equal_approx(viewport_aspect, video_mode_aspect)) {
 		//same aspect or ignore aspect
 		viewport_size = desired_res;
 		screen_size = video_mode;

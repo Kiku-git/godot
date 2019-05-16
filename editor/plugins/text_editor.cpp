@@ -66,7 +66,6 @@ void TextEditor::_change_syntax_highlighter(int p_idx) {
 		el = el->next();
 	}
 	set_syntax_highlighter(highlighters[highlighter_menu->get_item_text(p_idx)]);
-	EditorSettings::get_singleton()->set_project_metadata("text_editor", "syntax_highlighter", p_idx);
 }
 
 void TextEditor::_load_theme_settings() {
@@ -95,6 +94,7 @@ void TextEditor::_load_theme_settings() {
 	Color member_variable_color = EDITOR_GET("text_editor/highlighting/member_variable_color");
 	Color mark_color = EDITOR_GET("text_editor/highlighting/mark_color");
 	Color breakpoint_color = EDITOR_GET("text_editor/highlighting/breakpoint_color");
+	Color executing_line_color = EDITOR_GET("text_editor/highlighting/executing_line_color");
 	Color code_folding_color = EDITOR_GET("text_editor/highlighting/code_folding_color");
 	Color search_result_color = EDITOR_GET("text_editor/highlighting/search_result_color");
 	Color search_result_border_color = EDITOR_GET("text_editor/highlighting/search_result_border_color");
@@ -125,6 +125,7 @@ void TextEditor::_load_theme_settings() {
 	text_edit->add_color_override("function_color", function_color);
 	text_edit->add_color_override("member_variable_color", member_variable_color);
 	text_edit->add_color_override("breakpoint_color", breakpoint_color);
+	text_edit->add_color_override("executing_line_color", executing_line_color);
 	text_edit->add_color_override("mark_color", mark_color);
 	text_edit->add_color_override("code_folding_color", code_folding_color);
 	text_edit->add_color_override("search_result_color", search_result_color);
@@ -234,6 +235,14 @@ Variant TextEditor::get_edit_state() {
 void TextEditor::set_edit_state(const Variant &p_state) {
 
 	code_editor->set_edit_state(p_state);
+
+	Dictionary state = p_state;
+	if (state.has("syntax_highlighter")) {
+		int idx = highlighter_menu->get_item_idx_from_text(state["syntax_highlighter"]);
+		if (idx >= 0) {
+			_change_syntax_highlighter(idx);
+		}
+	}
 }
 
 void TextEditor::trim_trailing_whitespace() {
@@ -259,6 +268,15 @@ void TextEditor::tag_saved_version() {
 void TextEditor::goto_line(int p_line, bool p_with_error) {
 
 	code_editor->goto_line(p_line);
+}
+
+void TextEditor::set_executing_line(int p_line) {
+
+	code_editor->set_executing_line(p_line);
+}
+
+void TextEditor::clear_executing_line() {
+	code_editor->clear_executing_line();
 }
 
 void TextEditor::ensure_focus() {
@@ -299,7 +317,6 @@ void TextEditor::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_READY:
 			_load_theme_settings();
-			_change_syntax_highlighter(EditorSettings::get_singleton()->get_project_metadata("text_editor", "syntax_highlighter", 0));
 			break;
 	}
 }

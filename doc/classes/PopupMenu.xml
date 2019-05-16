@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<class name="PopupMenu" inherits="Popup" category="Core" version="3.1">
+<class name="PopupMenu" inherits="Popup" category="Core" version="3.2">
 	<brief_description>
 		PopupMenu displays a list of options.
 	</brief_description>
@@ -8,8 +8,6 @@
 	</description>
 	<tutorials>
 	</tutorials>
-	<demos>
-	</demos>
 	<methods>
 		<method name="add_check_item">
 			<return type="void">
@@ -529,14 +527,14 @@
 	</members>
 	<signals>
 		<signal name="id_focused">
-			<argument index="0" name="ID" type="int">
+			<argument index="0" name="id" type="int">
 			</argument>
 			<description>
 				This event is emitted when user navigated to an item of some id using [code]ui_up[/code] or [code]ui_down[/code] action.
 			</description>
 		</signal>
 		<signal name="id_pressed">
-			<argument index="0" name="ID" type="int">
+			<argument index="0" name="id" type="int">
 			</argument>
 			<description>
 				This event is emitted when an item of some id is pressed or its accelerator is activated.

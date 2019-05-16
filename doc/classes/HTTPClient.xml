@@ -1,26 +1,24 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<class name="HTTPClient" inherits="Reference" category="Core" version="3.1">
+<class name="HTTPClient" inherits="Reference" category="Core" version="3.2">
 	<brief_description>
 		Hyper-text transfer protocol client.
 	</brief_description>
 	<description>
 		Hyper-text transfer protocol client (sometimes called "User Agent"). Used to make HTTP requests to download web content, upload files and other data or to communicate with various services, among other use cases.
 		Note that this client only needs to connect to a host once (see [method connect_to_host]) to send multiple requests. Because of this, methods that take URLs usually take just the part after the host instead of the full URL, as the client is already connected to a host. See [method request] for a full example and to get started.
-		A [code]HTTPClient[/code] should be reused between multiple requests or to connect to different hosts instead of creating one client per request. Supports SSL and SSL server certificate verification. HTTP status codes in the 2xx range indicate success, 3xx redirection (i.e. "try again, but over here"), 4xx something was wrong with the request, and 5xx something went wrong on the server's side.
+		A [HTTPClient] should be reused between multiple requests or to connect to different hosts instead of creating one client per request. Supports SSL and SSL server certificate verification. HTTP status codes in the 2xx range indicate success, 3xx redirection (i.e. "try again, but over here"), 4xx something was wrong with the request, and 5xx something went wrong on the server's side.
 		For more information on HTTP, see https://developer.mozilla.org/en-US/docs/Web/HTTP (or read RFC 2616 to get it straight from the source: https://tools.ietf.org/html/rfc2616).
 	</description>
 	<tutorials>
 		<link>https://docs.godotengine.org/en/latest/tutorials/networking/http_client_class.html</link>
 		<link>https://docs.godotengine.org/en/latest/tutorials/networking/ssl_certificates.html</link>
 	</tutorials>
-	<demos>
-	</demos>
 	<methods>
 		<method name="close">
 			<return type="void">
 			</return>
 			<description>
-				Closes the current connection, allowing reuse of this [code]HTTPClient[/code].
+				Closes the current connection, allowing reuse of this [HTTPClient].
 			</description>
 		</method>
 		<method name="connect_to_host">
@@ -82,14 +80,14 @@
 			<return type="bool">
 			</return>
 			<description>
-				If [code]true[/code], this [code]HTTPClient[/code] has a response available.
+				If [code]true[/code], this [HTTPClient] has a response available.
 			</description>
 		</method>
 		<method name="is_response_chunked" qualifiers="const">
 			<return type="bool">
 			</return>
 			<description>
-				If [code]true[/code], this [code]HTTPClient[/code] has a response that is chunked.
+				If [code]true[/code], this [HTTPClient] has a response that is chunked.
 			</description>
 		</method>
 		<method name="poll">
@@ -297,7 +295,7 @@
 			HTTP status code [code]303 See Other[/code]. The server is redirecting the user agent to a different resource, as indicated by a URI in the Location header field, which is intended to provide an indirect response to the original request.
 		</constant>
 		<constant name="RESPONSE_NOT_MODIFIED" value="304" enum="ResponseCode">
-			HTTP status code [code]304 Not Modified[/code]. A conditional GET or HEAD request has been received and would have resulted in a 200 OK response if it were not for the fact that the condition evaluated to false.
+			HTTP status code [code]304 Not Modified[/code]. A conditional GET or HEAD request has been received and would have resulted in a 200 OK response if it were not for the fact that the condition evaluated to [code]false[/code].
 		</constant>
 		<constant name="RESPONSE_USE_PROXY" value="305" enum="ResponseCode">
 			HTTP status code [code]305 Use Proxy[/code]. Deprecated. Do not use.
@@ -348,7 +346,7 @@
 			HTTP status code [code]411 Length Required[/code]. The server refuses to accept the request without a defined Content-Length header.
 		</constant>
 		<constant name="RESPONSE_PRECONDITION_FAILED" value="412" enum="ResponseCode">
-			HTTP status code [code]412 Precondition Failed[/code]. One or more conditions given in the request header fields evaluated to false when tested on the server.
+			HTTP status code [code]412 Precondition Failed[/code]. One or more conditions given in the request header fields evaluated to [code]false[/code] when tested on the server.
 		</constant>
 		<constant name="RESPONSE_REQUEST_ENTITY_TOO_LARGE" value="413" enum="ResponseCode">
 			HTTP status code [code]413 Entity Too Large[/code]. The server is refusing to process a request because the request payload is larger than the server is willing or able to process.

@@ -233,8 +233,8 @@ void EditorFileDialog::_file_entered(const String &p_file) {
 void EditorFileDialog::_save_confirm_pressed() {
 	String f = dir_access->get_current_dir().plus_file(file->get_text());
 	_save_to_recent();
-	emit_signal("file_selected", f);
 	hide();
+	emit_signal("file_selected", f);
 }
 
 void EditorFileDialog::_post_popup() {
@@ -343,8 +343,8 @@ void EditorFileDialog::_action_pressed() {
 
 		if (files.size()) {
 			_save_to_recent();
-			emit_signal("files_selected", files);
 			hide();
+			emit_signal("files_selected", files);
 		}
 
 		return;
@@ -354,8 +354,8 @@ void EditorFileDialog::_action_pressed() {
 
 	if ((mode == MODE_OPEN_ANY || mode == MODE_OPEN_FILE) && dir_access->file_exists(f)) {
 		_save_to_recent();
-		emit_signal("file_selected", f);
 		hide();
+		emit_signal("file_selected", f);
 	} else if (mode == MODE_OPEN_ANY || mode == MODE_OPEN_DIR) {
 
 		String path = dir_access->get_current_dir();
@@ -374,8 +374,8 @@ void EditorFileDialog::_action_pressed() {
 		}
 
 		_save_to_recent();
-		emit_signal("dir_selected", path);
 		hide();
+		emit_signal("dir_selected", path);
 	}
 
 	if (mode == MODE_SAVE_FILE) {
@@ -441,8 +441,8 @@ void EditorFileDialog::_action_pressed() {
 		} else {
 
 			_save_to_recent();
-			emit_signal("file_selected", f);
 			hide();
+			emit_signal("file_selected", f);
 		}
 	}
 }
@@ -852,7 +852,7 @@ void EditorFileDialog::update_file_list() {
 	fav_down->set_disabled(true);
 	get_ok()->set_disabled(_is_open_should_be_disabled());
 	for (int i = 0; i < favorites->get_item_count(); i++) {
-		if (favorites->get_item_metadata(i) == cdir) {
+		if (favorites->get_item_metadata(i) == cdir || favorites->get_item_metadata(i) == cdir + "/") {
 			favorites->select(i);
 			favorite->set_pressed(true);
 			if (i > 0) {
@@ -1205,8 +1205,10 @@ void EditorFileDialog::_update_favorites() {
 			if (name == current)
 				setthis = true;
 			name = "/";
+
+			favorites->add_item(name, folder_icon);
 		} else if (name.ends_with("/")) {
-			if (name == current)
+			if (name == current || name == current + "/")
 				setthis = true;
 			name = name.substr(0, name.length() - 1);
 			name = name.get_file();
@@ -1229,6 +1231,8 @@ void EditorFileDialog::_favorite_toggled(bool p_toggle) {
 	bool res = access == ACCESS_RESOURCES;
 
 	String cd = get_current_dir();
+	if (!cd.ends_with("/"))
+		cd += "/";
 
 	Vector<String> favorited = EditorSettings::get_singleton()->get_favorites();
 
@@ -1244,13 +1248,10 @@ void EditorFileDialog::_favorite_toggled(bool p_toggle) {
 		}
 	}
 
-	if (found) {
+	if (found)
 		favorited.erase(cd);
-		favorite->set_pressed(false);
-	} else {
+	else
 		favorited.push_back(cd);
-		favorite->set_pressed(true);
-	}
 
 	EditorSettings::get_singleton()->set_favorites(favorited);
 
@@ -1494,9 +1495,11 @@ EditorFileDialog::EditorFileDialog() {
 	HBoxContainer *pathhb = memnew(HBoxContainer);
 
 	dir_prev = memnew(ToolButton);
+	dir_prev->set_tooltip(TTR("Previous Folder"));
 	dir_next = memnew(ToolButton);
+	dir_next->set_tooltip(TTR("Next Folder"));
 	dir_up = memnew(ToolButton);
-	dir_up->set_tooltip(TTR("Go to parent folder"));
+	dir_up->set_tooltip(TTR("Go to parent folder."));
 
 	pathhb->add_child(dir_prev);
 	pathhb->add_child(dir_next);
@@ -1513,12 +1516,14 @@ EditorFileDialog::EditorFileDialog() {
 	dir->set_h_size_flags(SIZE_EXPAND_FILL);
 
 	refresh = memnew(ToolButton);
+	refresh->set_tooltip(TTR("Refresh"));
 	refresh->connect("pressed", this, "_update_file_list");
 	pathhb->add_child(refresh);
 
 	favorite = memnew(ToolButton);
 	favorite->set_flat(true);
 	favorite->set_toggle_mode(true);
+	favorite->set_tooltip(TTR("(Un)favorite current folder."));
 	favorite->connect("toggled", this, "_favorite_toggled");
 	pathhb->add_child(favorite);
 
@@ -1532,6 +1537,7 @@ EditorFileDialog::EditorFileDialog() {
 	mode_thumbnails->set_toggle_mode(true);
 	mode_thumbnails->set_pressed(display_mode == DISPLAY_THUMBNAILS);
 	mode_thumbnails->set_button_group(view_mode_group);
+	mode_thumbnails->set_tooltip(TTR("View items as a grid of thumbnails."));
 	pathhb->add_child(mode_thumbnails);
 
 	mode_list = memnew(ToolButton);
@@ -1539,6 +1545,7 @@ EditorFileDialog::EditorFileDialog() {
 	mode_list->set_toggle_mode(true);
 	mode_list->set_pressed(display_mode == DISPLAY_LIST);
 	mode_list->set_button_group(view_mode_group);
+	mode_list->set_tooltip(TTR("View items as a list."));
 	pathhb->add_child(mode_list);
 
 	drives = memnew(OptionButton);

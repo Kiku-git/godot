@@ -48,11 +48,12 @@ void EditorHelp::_init_colors() {
 	text_color = get_color("default_color", "RichTextLabel");
 	headline_color = get_color("headline_color", "EditorHelp");
 	base_type_color = title_color.linear_interpolate(text_color, 0.5);
-	comment_color = Color(text_color.r, text_color.g, text_color.b, 0.6);
+	comment_color = text_color * Color(1, 1, 1, 0.6);
 	symbol_color = comment_color;
-	value_color = Color(text_color.r, text_color.g, text_color.b, 0.4);
-	qualifier_color = Color(text_color.r, text_color.g, text_color.b, 0.8);
+	value_color = text_color * Color(1, 1, 1, 0.4);
+	qualifier_color = text_color * Color(1, 1, 1, 0.8);
 	type_color = get_color("accent_color", "Editor").linear_interpolate(text_color, 0.5);
+	class_desc->add_color_override("selection_color", get_color("accent_color", "Editor") * Color(1, 1, 1, 0.4));
 }
 
 void EditorHelp::_unhandled_key_input(const Ref<InputEvent> &p_ev) {
@@ -96,8 +97,10 @@ void EditorHelp::_class_desc_select(const String &p_select) {
 		emit_signal("go_to_help", "class_name:" + p_select.substr(1, p_select.length()));
 		return;
 	} else if (p_select.begins_with("@")) {
-		String tag = p_select.substr(1, 6);
-		String link = p_select.substr(7, p_select.length());
+		int tag_end = p_select.find(" ");
+
+		String tag = p_select.substr(1, tag_end - 1);
+		String link = p_select.substr(tag_end + 1, p_select.length()).lstrip(" ");
 
 		String topic;
 		Map<String, int> *table = NULL;
@@ -108,24 +111,50 @@ void EditorHelp::_class_desc_select(const String &p_select) {
 		} else if (tag == "member") {
 			topic = "class_property";
 			table = &this->property_line;
-		} else if (tag == "enum  ") {
+		} else if (tag == "enum") {
 			topic = "class_enum";
 			table = &this->enum_line;
 		} else if (tag == "signal") {
 			topic = "class_signal";
 			table = &this->signal_line;
+		} else if (tag == "constant") {
+			topic = "class_constant";
+			table = &this->constant_line;
 		} else {
 			return;
 		}
 
 		if (link.find(".") != -1) {
-
 			emit_signal("go_to_help", topic + ":" + link.get_slice(".", 0) + ":" + link.get_slice(".", 1));
 		} else {
+			if (table->has(link)) {
+				// Found in the current page
+				class_desc->scroll_to_line((*table)[link]);
+			} else {
+				if (topic == "class_enum") {
+					// Try to find the enum in @GlobalScope
+					const DocData::ClassDoc &cd = doc->class_list["@GlobalScope"];
 
-			if (!table->has(link))
-				return;
-			class_desc->scroll_to_line((*table)[link]);
+					for (int i = 0; i < cd.constants.size(); i++) {
+						if (cd.constants[i].enumeration == link) {
+							// Found in @GlobalScope
+							emit_signal("go_to_help", topic + ":@GlobalScope:" + link);
+							break;
+						}
+					}
+				} else if (topic == "class_constant") {
+					// Try to find the constant in @GlobalScope
+					const DocData::ClassDoc &cd = doc->class_list["@GlobalScope"];
+
+					for (int i = 0; i < cd.constants.size(); i++) {
+						if (cd.constants[i].name == link) {
+							// Found in @GlobalScope
+							emit_signal("go_to_help", topic + ":@GlobalScope:" + link);
+							break;
+						}
+					}
+				}
+			}
 		}
 	} else if (p_select.begins_with("http")) {
 		OS::get_singleton()->shell_open(p_select);
@@ -203,7 +232,7 @@ void EditorHelp::_add_method(const DocData::MethodDoc &p_method, bool p_overview
 	}
 
 	if (p_overview && p_method.description != "") {
-		class_desc->push_meta("@method" + p_method.name);
+		class_desc->push_meta("@method " + p_method.name);
 	}
 
 	class_desc->push_color(headline_color);
@@ -441,7 +470,7 @@ void EditorHelp::_update_doc() {
 			}
 			class_desc->push_cell();
 			if (describe) {
-				class_desc->push_meta("@member" + cd.properties[i].name);
+				class_desc->push_meta("@member " + cd.properties[i].name);
 			}
 
 			class_desc->push_font(doc_code_font);
@@ -732,6 +761,9 @@ void EditorHelp::_update_doc() {
 				for (int i = 0; i < enum_list.size(); i++) {
 					if (cd.name == "@GlobalScope")
 						enumValuesContainer[enum_list[i].name] = enumStartingLine;
+
+					// Add the enum constant line to the constant_line map so we can locate it as a constant
+					constant_line[enum_list[i].name] = class_desc->get_line_count() - 2;
 
 					class_desc->push_font(doc_code_font);
 					class_desc->push_color(headline_color);
@@ -1160,12 +1192,15 @@ static void _add_text_to_rt(const String &p_bbcode, RichTextLabel *p_rt) {
 			p_rt->add_text("[");
 			pos = brk_pos + 1;
 
-		} else if (tag.begins_with("method ") || tag.begins_with("member ") || tag.begins_with("signal ") || tag.begins_with("enum ")) {
+		} else if (tag.begins_with("method ") || tag.begins_with("member ") || tag.begins_with("signal ") || tag.begins_with("enum ") || tag.begins_with("constant ")) {
 
-			String link_target = tag.substr(tag.find(" ") + 1, tag.length());
-			String link_tag = tag.substr(0, tag.find(" ")).rpad(6);
+			int tag_end = tag.find(" ");
+
+			String link_tag = tag.substr(0, tag_end);
+			String link_target = tag.substr(tag_end + 1, tag.length()).lstrip(" ");
+
 			p_rt->push_color(link_color);
-			p_rt->push_meta("@" + link_tag + link_target);
+			p_rt->push_meta("@" + link_tag + " " + link_target);
 			p_rt->add_text(link_target + (tag.begins_with("method ") ? "()" : ""));
 			p_rt->pop();
 			p_rt->pop();
@@ -1340,19 +1375,11 @@ void EditorHelp::_notification(int p_what) {
 
 	switch (p_what) {
 
-		case NOTIFICATION_READY: {
-
-			_update_doc();
-
-		} break;
-
+		case NOTIFICATION_READY:
 		case EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED: {
-
-			class_desc->add_color_override("selection_color", EditorSettings::get_singleton()->get("text_editor/theme/selection_color"));
 			_update_doc();
 
 		} break;
-
 		default: break;
 	}
 }
@@ -1426,7 +1453,7 @@ EditorHelp::EditorHelp() {
 	class_desc = memnew(RichTextLabel);
 	add_child(class_desc);
 	class_desc->set_v_size_flags(SIZE_EXPAND_FILL);
-	class_desc->add_color_override("selection_color", EditorSettings::get_singleton()->get("text_editor/theme/selection_color"));
+	class_desc->add_color_override("selection_color", get_color("accent_color", "Editor") * Color(1, 1, 1, 0.4));
 	class_desc->connect("meta_clicked", this, "_class_desc_select");
 	class_desc->connect("gui_input", this, "_class_desc_input");
 
@@ -1491,7 +1518,7 @@ void EditorHelpBit::_notification(int p_what) {
 	switch (p_what) {
 		case EditorSettings::NOTIFICATION_EDITOR_SETTINGS_CHANGED: {
 
-			rich_text->add_color_override("selection_color", EditorSettings::get_singleton()->get("text_editor/theme/selection_color"));
+			rich_text->add_color_override("selection_color", get_color("accent_color", "Editor") * Color(1, 1, 1, 0.4));
 		} break;
 
 		default: break;
@@ -1509,7 +1536,7 @@ EditorHelpBit::EditorHelpBit() {
 	rich_text = memnew(RichTextLabel);
 	add_child(rich_text);
 	rich_text->connect("meta_clicked", this, "_meta_clicked");
-	rich_text->add_color_override("selection_color", EditorSettings::get_singleton()->get("text_editor/theme/selection_color"));
+	rich_text->add_color_override("selection_color", get_color("accent_color", "Editor") * Color(1, 1, 1, 0.4));
 	rich_text->set_override_selected_font_color(false);
 	set_custom_minimum_size(Size2(0, 70 * EDSCALE));
 }

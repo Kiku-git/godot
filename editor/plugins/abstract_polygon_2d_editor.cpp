@@ -481,6 +481,17 @@ bool AbstractPolygon2DEditor::forward_gui_input(const Ref<InputEvent> &p_event) 
 		if (edited_point.valid() && (wip_active || (mm->get_button_mask() & BUTTON_MASK_LEFT))) {
 
 			Vector2 cpoint = _get_node()->get_global_transform().affine_inverse().xform(canvas_item_editor->snap_point(canvas_item_editor->get_canvas_transform().affine_inverse().xform(gpoint)));
+
+			//Move the point in a single axis. Should only work when editing a polygon and while holding shift.
+			if (mode == MODE_EDIT && mm->get_shift()) {
+				Vector2 old_point = pre_move_edit.get(selected_point.vertex);
+				if (ABS(cpoint.x - old_point.x) > ABS(cpoint.y - old_point.y)) {
+					cpoint.y = old_point.y;
+				} else {
+					cpoint.x = old_point.x;
+				}
+			}
+
 			edited_point = PosVertex(edited_point, cpoint);
 
 			if (!wip_active) {
@@ -638,6 +649,13 @@ void AbstractPolygon2DEditor::forward_canvas_draw_over_viewport(Control *p_overl
 
 			const Color modulate = vertex == active_point ? Color(0.5, 1, 2) : Color(1, 1, 1);
 			p_overlay->draw_texture(handle, point - handle->get_size() * 0.5, modulate);
+
+			if (vertex == hover_point) {
+				Ref<Font> font = get_font("font", "Label");
+				String num = String::num(vertex.vertex);
+				Size2 num_size = font->get_string_size(num);
+				p_overlay->draw_string(font, point - num_size * 0.5, num, Color(1.0, 1.0, 1.0, 0.5));
+			}
 		}
 	}
 

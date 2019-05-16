@@ -61,8 +61,8 @@ int64_t GDAPI godot_videodecoder_file_seek(void *ptr, int64_t pos, int whence) {
 	// file
 	FileAccess *file = reinterpret_cast<FileAccess *>(ptr);
 
-	size_t len = file->get_len();
 	if (file) {
+		size_t len = file->get_len();
 		switch (whence) {
 			case SEEK_SET: {
 				// Just for explicitness
@@ -117,18 +117,20 @@ bool VideoStreamPlaybackGDNative::open_file(const String &p_file) {
 	file = FileAccess::open(p_file, FileAccess::READ);
 	bool file_opened = interface->open_file(data_struct, file);
 
-	num_channels = interface->get_channels(data_struct);
-	mix_rate = interface->get_mix_rate(data_struct);
+	if (file_opened) {
+		num_channels = interface->get_channels(data_struct);
+		mix_rate = interface->get_mix_rate(data_struct);
 
-	godot_vector2 vec = interface->get_texture_size(data_struct);
-	texture_size = *(Vector2 *)&vec;
+		godot_vector2 vec = interface->get_texture_size(data_struct);
+		texture_size = *(Vector2 *)&vec;
 
-	pcm = (float *)memalloc(num_channels * AUX_BUFFER_SIZE * sizeof(float));
-	memset(pcm, 0, num_channels * AUX_BUFFER_SIZE * sizeof(float));
-	pcm_write_idx = -1;
-	samples_decoded = 0;
+		pcm = (float *)memalloc(num_channels * AUX_BUFFER_SIZE * sizeof(float));
+		memset(pcm, 0, num_channels * AUX_BUFFER_SIZE * sizeof(float));
+		pcm_write_idx = -1;
+		samples_decoded = 0;
 
-	texture->create((int)texture_size.width, (int)texture_size.height, Image::FORMAT_RGBA8, Texture::FLAG_FILTER | Texture::FLAG_VIDEO_SURFACE);
+		texture->create((int)texture_size.width, (int)texture_size.height, Image::FORMAT_RGBA8, Texture::FLAG_FILTER | Texture::FLAG_VIDEO_SURFACE);
+	}
 
 	return file_opened;
 }
@@ -144,23 +146,25 @@ void VideoStreamPlaybackGDNative::update(float p_delta) {
 	ERR_FAIL_COND(interface == NULL);
 	interface->update(data_struct, p_delta);
 
-	if (pcm_write_idx >= 0) {
-		// Previous remains
-		int mixed = mix_callback(mix_udata, pcm, samples_decoded);
-		if (mixed == samples_decoded) {
-			pcm_write_idx = -1;
-		} else {
-			samples_decoded -= mixed;
-			pcm_write_idx += mixed;
+	if (mix_callback) {
+		if (pcm_write_idx >= 0) {
+			// Previous remains
+			int mixed = mix_callback(mix_udata, pcm, samples_decoded);
+			if (mixed == samples_decoded) {
+				pcm_write_idx = -1;
+			} else {
+				samples_decoded -= mixed;
+				pcm_write_idx += mixed;
+			}
 		}
-	}
-	if (pcm_write_idx < 0) {
-		samples_decoded = interface->get_audioframe(data_struct, pcm, AUX_BUFFER_SIZE);
-		pcm_write_idx = mix_callback(mix_udata, pcm, samples_decoded);
-		if (pcm_write_idx == samples_decoded) {
-			pcm_write_idx = -1;
-		} else {
-			samples_decoded -= pcm_write_idx;
+		if (pcm_write_idx < 0) {
+			samples_decoded = interface->get_audioframe(data_struct, pcm, AUX_BUFFER_SIZE);
+			pcm_write_idx = mix_callback(mix_udata, pcm, samples_decoded);
+			if (pcm_write_idx == samples_decoded) {
+				pcm_write_idx = -1;
+			} else {
+				samples_decoded -= pcm_write_idx;
+			}
 		}
 	}
 
@@ -355,9 +359,9 @@ RES ResourceFormatLoaderVideoStreamGDNative::load(const String &p_path, const St
 		if (r_error) {
 			*r_error = ERR_CANT_OPEN;
 		}
-		memdelete(f);
 		return RES();
 	}
+	memdelete(f);
 	VideoStreamGDNative *stream = memnew(VideoStreamGDNative);
 	stream->set_file(p_path);
 	Ref<VideoStreamGDNative> ogv_stream = Ref<VideoStreamGDNative>(stream);

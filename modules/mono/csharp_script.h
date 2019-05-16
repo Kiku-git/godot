@@ -162,7 +162,7 @@ public:
 	virtual bool has_script_signal(const StringName &p_signal) const;
 	virtual void get_script_signal_list(List<MethodInfo> *r_signals) const;
 
-	/* TODO */ virtual bool get_property_default_value(const StringName &p_property, Variant &r_value) const;
+	virtual bool get_property_default_value(const StringName &p_property, Variant &r_value) const;
 	virtual void get_script_property_list(List<PropertyInfo> *p_list) const;
 	virtual void update_exports();
 
@@ -298,6 +298,7 @@ class CSharpLanguage : public ScriptLanguage {
 		StringName _signal_callback;
 		StringName _set;
 		StringName _get;
+		StringName _get_property_list;
 		StringName _notification;
 		StringName _script_source;
 		StringName dotctor; // .ctor
@@ -308,6 +309,17 @@ class CSharpLanguage : public ScriptLanguage {
 	int lang_idx;
 
 	Dictionary scripts_metadata;
+	bool scripts_metadata_invalidated;
+
+	// For debug_break and debug_break_parse
+	int _debug_parse_err_line;
+	String _debug_parse_err_file;
+	String _debug_error;
+
+	void _load_scripts_metadata();
+
+	friend class GDMono;
+	void _on_scripts_domain_unloaded();
 
 public:
 	StringNameCache string_names;
@@ -332,9 +344,15 @@ public:
 	void reload_assemblies(bool p_soft_reload);
 #endif
 
-	void project_assembly_loaded();
+	_FORCE_INLINE_ Dictionary get_scripts_metadata_or_nothing() {
+		return scripts_metadata_invalidated ? Dictionary() : scripts_metadata;
+	}
 
-	_FORCE_INLINE_ const Dictionary &get_scripts_metadata() { return scripts_metadata; }
+	_FORCE_INLINE_ const Dictionary &get_scripts_metadata() {
+		if (scripts_metadata_invalidated)
+			_load_scripts_metadata();
+		return scripts_metadata;
+	}
 
 	virtual String get_name() const;
 
@@ -365,11 +383,11 @@ public:
 	/* TODO */ virtual void add_global_constant(const StringName &p_variable, const Variant &p_value) {}
 
 	/* DEBUGGER FUNCTIONS */
-	/* TODO */ virtual String debug_get_error() const { return ""; }
-	/* TODO */ virtual int debug_get_stack_level_count() const { return 1; }
-	/* TODO */ virtual int debug_get_stack_level_line(int p_level) const { return 1; }
-	/* TODO */ virtual String debug_get_stack_level_function(int p_level) const { return ""; }
-	/* TODO */ virtual String debug_get_stack_level_source(int p_level) const { return ""; }
+	virtual String debug_get_error() const;
+	virtual int debug_get_stack_level_count() const;
+	virtual int debug_get_stack_level_line(int p_level) const;
+	virtual String debug_get_stack_level_function(int p_level) const;
+	virtual String debug_get_stack_level_source(int p_level) const;
 	/* TODO */ virtual void debug_get_stack_level_locals(int p_level, List<String> *p_locals, List<Variant> *p_values, int p_max_subitems, int p_max_depth) {}
 	/* TODO */ virtual void debug_get_stack_level_members(int p_level, List<String> *p_members, List<Variant> *p_values, int p_max_subitems, int p_max_depth) {}
 	/* TODO */ virtual void debug_get_globals(List<String> *p_locals, List<Variant> *p_values, int p_max_subitems, int p_max_depth) {}

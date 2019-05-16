@@ -110,6 +110,11 @@ Copyright: 2007, Starbreeze Studios
  2014-2019, Godot Engine contributors.
 License: Expat and Zlib
 
+Files: ./thirdparty/assimp/
+Comment: Open Asset Import Library (assimp)
+Copyright: 2006-2016, assimp team
+License: BSD-3-clause
+
 Files: ./thirdparty/b2d_convexdecomp/
 Comment: Box2D (ConvexDecomp)
 Copyright: 2007, Eric Jordan
@@ -180,8 +185,8 @@ License: BSD-3-clause
 
 Files: ./thirdparty/libpng/
 Comment: libpng
-Copyright: 1995-2018, The PNG Reference Library Authors.
- 2018, Cosmin Truta.
+Copyright: 1995-2019, The PNG Reference Library Authors.
+ 2018-2019, Cosmin Truta.
  2000-2002, 2004, 2006-2018 Glenn Randers-Pehrson.
  1996-1997, Andreas Dilger.
  1995-1996, Guy Eric Schalnat, Group 42, Inc.
@@ -369,16 +374,24 @@ Comment: libSquish
 Copyright: 2006, Simon Brown
 License: Expat
 
-Files: ./thirdparty/thekla_atlas/
-Comment: Thekla Atlas
-Copyright: 2013, Thekla, Inc
-License: Expat
-
 Files: ./thirdparty/tinyexr/
 Comment: TinyEXR
 Copyright: 2014-2018, Syoyo Fujita
   2002, Industrial Light & Magic, a division of Lucas Digital Ltd. LLC
 License: BSD-3-clause
+
+Files: ./thirdparty/vhacd/
+Comment: V-HACD
+Copyright: 2011, Khaled Mamou
+  2003-2009, Erwin Coumans
+License: BSD-3-clause
+
+Files: ./thirdparty/xatlas/
+Comment: xatlas
+Copyright: 2018, Jonathan Young
+  2013, Thekla, Inc
+  2006, NVIDIA Corporation, Ignacio Castano
+License: Expat
 
 Files: ./thirdparty/zlib/
 Comment: zlib

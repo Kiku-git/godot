@@ -76,6 +76,7 @@ class AnimationTimelineEdit : public Range {
 	Rect2 hsize_rect;
 
 	bool editing;
+	bool use_fps;
 
 	bool panning_timeline;
 	float panning_timeline_from;
@@ -110,6 +111,9 @@ public:
 
 	void update_values();
 
+	void set_use_fps(bool p_use_fps);
+	bool is_using_fps() const;
+
 	void set_hscroll(HScrollBar *p_hscroll);
 
 	AnimationTimelineEdit();
@@ -141,6 +145,7 @@ class AnimationTrackEdit : public Control {
 	Node *root;
 	Control *play_position; //separate control used to draw so updates for only position changed are much faster
 	float play_position_pos;
+	NodePath node_path;
 
 	Ref<Animation> animation;
 	int track;
@@ -212,7 +217,7 @@ public:
 	AnimationTimelineEdit *get_timeline() const { return timeline; }
 	AnimationTrackEditor *get_editor() const { return editor; }
 	UndoRedo *get_undo_redo() const { return undo_redo; }
-
+	NodePath get_path() const;
 	void set_animation_and_track(const Ref<Animation> &p_animation, int p_track);
 	virtual Size2 get_minimum_size() const;
 
@@ -302,10 +307,17 @@ class AnimationTrackEditor : public VBoxContainer {
 	EditorSpinSlider *step;
 	TextureRect *zoom_icon;
 	ToolButton *snap;
+	OptionButton *snap_mode;
 
+	Button *imported_anim_warning;
+	void _show_imported_anim_warning() const;
+
+	void _snap_mode_changed(int p_mode);
 	Vector<AnimationTrackEdit *> track_edits;
 	Vector<AnimationTrackEditGroup *> groups;
 
+	bool animation_changing_awaiting_update;
+	void _animation_update();
 	int _get_track_selected();
 	void _animation_changed();
 	void _update_tracks();
@@ -324,6 +336,8 @@ class AnimationTrackEditor : public VBoxContainer {
 	void _add_track(int p_type);
 	void _new_track_node_selected(NodePath p_path);
 	void _new_track_property_selected(String p_name);
+
+	void _update_step_spinbox();
 
 	PropertySelector *prop_selector;
 	PropertySelector *method_selector;
@@ -480,6 +494,9 @@ public:
 	Node *get_root() const;
 	void update_keying();
 	bool has_keying() const;
+
+	Dictionary get_state() const;
+	void set_state(const Dictionary &p_state);
 
 	void cleanup();
 

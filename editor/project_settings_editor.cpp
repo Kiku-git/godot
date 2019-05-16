@@ -111,7 +111,7 @@ void ProjectSettingsEditor::_notification(int p_what) {
 			restart_close_button->set_icon(get_icon("Close", "EditorIcons"));
 			restart_container->add_style_override("panel", get_stylebox("bg", "Tree"));
 			restart_icon->set_texture(get_icon("StatusWarning", "EditorIcons"));
-			restart_label->add_color_override("font_color", get_color("error_color", "Editor"));
+			restart_label->add_color_override("font_color", get_color("warning_color", "Editor"));
 
 		} break;
 		case NOTIFICATION_POPUP_HIDE: {
@@ -181,7 +181,7 @@ void ProjectSettingsEditor::_action_edited() {
 			ti->set_text(0, old_name);
 			add_at = "input/" + old_name;
 
-			message->set_text(vformat(TTR("Action '%s' already exists!"), new_name));
+			message->set_text(vformat(TTR("An action with the name '%s' already exists."), new_name));
 			message->popup_centered(Size2(300, 100) * EDSCALE);
 			return;
 		}
@@ -294,7 +294,8 @@ void ProjectSettingsEditor::_device_input_add() {
 			ie = jb;
 
 		} break;
-		default: {}
+		default: {
+		}
 	}
 
 	if (idx < 0 || idx >= events.size()) {
@@ -519,7 +520,8 @@ void ProjectSettingsEditor::_add_item(int p_item, Ref<InputEvent> p_exiting_even
 			}
 
 		} break;
-		default: {}
+		default: {
+		}
 	}
 }
 
@@ -703,7 +705,7 @@ void ProjectSettingsEditor::_update_actions() {
 		item->add_button(2, get_icon("Add", "EditorIcons"), 1, false, TTR("Add Event"));
 		if (!ProjectSettings::get_singleton()->get_input_presets().find(pi.name)) {
 			item->add_button(2, get_icon("Remove", "EditorIcons"), 2, false, TTR("Remove"));
-			item->set_editable(2, true);
+			item->set_editable(0, true);
 		}
 
 		for (int i = 0; i < events.size(); i++) {
@@ -925,7 +927,7 @@ void ProjectSettingsEditor::_action_check(String p_action) {
 		}
 		if (ProjectSettings::get_singleton()->has_setting("input/" + p_action)) {
 
-			action_add_error->set_text(TTR("Already existing"));
+			action_add_error->set_text(vformat(TTR("An action with the name '%s' already exists."), p_action));
 			action_add_error->show();
 			action_add->set_disabled(true);
 			return;
@@ -1590,6 +1592,7 @@ void ProjectSettingsEditor::_toggle_search_bar(bool p_pressed) {
 		search_box->select_all();
 	} else {
 
+		search_box->clear();
 		search_bar->hide();
 		add_prop_bar->show();
 	}
@@ -1783,7 +1786,7 @@ ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
 	restart_icon->set_v_size_flags(SIZE_SHRINK_CENTER);
 	restart_hb->add_child(restart_icon);
 	restart_label = memnew(Label);
-	restart_label->set_text(TTR("Editor must be restarted for changes to take effect"));
+	restart_label->set_text(TTR("The editor must be restarted for changes to take effect."));
 	restart_hb->add_child(restart_label);
 	restart_hb->add_spacer();
 	Button *restart_button = memnew(Button);
@@ -2001,8 +2004,8 @@ ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
 		tvb->add_child(tmc);
 
 		translation_locale_filter_mode = memnew(OptionButton);
-		translation_locale_filter_mode->add_item(TTR("Show all locales"), SHOW_ALL_LOCALES);
-		translation_locale_filter_mode->add_item(TTR("Show only selected locales"), SHOW_ONLY_SELECTED_LOCALES);
+		translation_locale_filter_mode->add_item(TTR("Show All Locales"), SHOW_ALL_LOCALES);
+		translation_locale_filter_mode->add_item(TTR("Show Selected Locales Only"), SHOW_ONLY_SELECTED_LOCALES);
 		translation_locale_filter_mode->select(0);
 		tmc->add_margin_child(TTR("Filter mode:"), translation_locale_filter_mode);
 		translation_locale_filter_mode->connect("item_selected", this, "_translation_filter_mode_changed");

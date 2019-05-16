@@ -123,6 +123,31 @@ const char *CharString::get_data() const {
 		return "";
 }
 
+CharString &CharString::operator=(const char *p_cstr) {
+
+	copy_from(p_cstr);
+	return *this;
+}
+
+void CharString::copy_from(const char *p_cstr) {
+
+	if (!p_cstr) {
+		resize(0);
+		return;
+	}
+
+	size_t len = strlen(p_cstr);
+
+	if (len == 0) {
+		resize(0);
+		return;
+	}
+
+	resize(len + 1); // include terminating null char
+
+	strcpy(ptrw(), p_cstr);
+}
+
 void String::copy_from(const char *p_cstr) {
 
 	if (!p_cstr) {
@@ -3746,6 +3771,24 @@ String String::path_to(const String &p_path) const {
 bool String::is_valid_html_color() const {
 
 	return Color::html_is_valid(*this);
+}
+
+bool String::is_valid_filename() const {
+
+	String stripped = strip_edges();
+	if (*this != stripped) {
+		return false;
+	}
+
+	if (stripped == String()) {
+		return false;
+	}
+
+	if (find(":") != -1 || find("/") != -1 || find("\\") != -1 || find("?") != -1 || find("*") != -1 || find("\"") != -1 || find("|") != -1 || find("%") != -1 || find("<") != -1 || find(">") != -1) {
+		return false;
+	} else {
+		return true;
+	}
 }
 
 bool String::is_valid_ip_address() const {

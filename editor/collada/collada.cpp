@@ -166,7 +166,8 @@ Transform Collada::Node::compute_transform(Collada &state) const {
 				}
 
 			} break;
-			default: {}
+			default: {
+			}
 		}
 
 		xform = xform * xform_step;
@@ -2255,8 +2256,7 @@ void Collada::_merge_skeletons2(VisualScene *p_vscene) {
 
 			Node *node = state.scene_map[name];
 			ERR_CONTINUE(node->type != Node::TYPE_JOINT);
-			if (node->type != Node::TYPE_JOINT)
-				continue;
+
 			NodeSkeleton *sk = NULL;
 
 			while (node && !sk) {

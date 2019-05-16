@@ -71,7 +71,7 @@ if env['builtin_libwebsockets'] and not env["platform"] == "javascript": # alrea
 
     thirdparty_sources = [thirdparty_dir + file for file in thirdparty_sources]
 
-    env_lws.Append(CPPPATH=[thirdparty_dir])
+    env_lws.Prepend(CPPPATH=[thirdparty_dir])
 
     if env['builtin_mbedtls']:
         mbedtls_includes = "#thirdparty/mbedtls/include"
@@ -81,10 +81,10 @@ if env['builtin_libwebsockets'] and not env["platform"] == "javascript": # alrea
     env_lws.Prepend(CPPPATH=wrapper_includes)
 
     if env["platform"] == "windows" or env["platform"] == "uwp":
-        env_lws.Append(CPPPATH=[thirdparty_dir + helper_dir])
+        env_lws.Prepend(CPPPATH=[thirdparty_dir + helper_dir])
 
     if env["platform"] == "uwp":
-        env_lws.Append(CCFLAGS=["/DLWS_MINGW_SUPPORT"])
+        env_lws.Append(CPPFLAGS=["/DLWS_MINGW_SUPPORT"])
 
     env_thirdparty = env_lws.Clone()
     env_thirdparty.disable_warnings()

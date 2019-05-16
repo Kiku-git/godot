@@ -97,12 +97,21 @@ public:
 
 	_FORCE_INLINE_ CharString() {}
 	_FORCE_INLINE_ CharString(const CharString &p_str) { _cowdata._ref(p_str._cowdata); }
+	_FORCE_INLINE_ CharString operator=(const CharString &p_str) {
+		_cowdata._ref(p_str._cowdata);
+		return *this;
+	}
+	_FORCE_INLINE_ CharString(const char *p_cstr) { copy_from(p_cstr); }
 
+	CharString &operator=(const char *p_cstr);
 	bool operator<(const CharString &p_right) const;
 	CharString &operator+=(char p_char);
 	int length() const { return size() ? size() - 1 : 0; }
 	const char *get_data() const;
 	operator const char *() const { return get_data(); };
+
+protected:
+	void copy_from(const char *p_cstr);
 };
 
 typedef wchar_t CharType;
@@ -331,6 +340,7 @@ public:
 	bool is_valid_hex_number(bool p_with_prefix) const;
 	bool is_valid_html_color() const;
 	bool is_valid_ip_address() const;
+	bool is_valid_filename() const;
 
 	/**
 	 * The constructors must not depend on other overloads
@@ -339,6 +349,10 @@ public:
 
 	_FORCE_INLINE_ String() {}
 	_FORCE_INLINE_ String(const String &p_str) { _cowdata._ref(p_str._cowdata); }
+	String operator=(const String &p_str) {
+		_cowdata._ref(p_str._cowdata);
+		return *this;
+	}
 
 	String(const char *p_str);
 	String(const CharType *p_str, int p_clip_to_len = -1);
@@ -398,11 +412,18 @@ _FORCE_INLINE_ bool is_str_less(const L *l_ptr, const R *r_ptr) {
 //tool translate
 #ifdef TOOLS_ENABLED
 
+//gets parsed
 String TTR(const String &);
+//use for c strings
+#define TTRC(m_value) m_value
+//use to avoid parsing (for use later with C strings)
+#define TTRGET(m_value) TTR(m_value)
 
 #else
 
 #define TTR(m_val) (String())
+#define TTRCDEF(m_value) (m_value)
+#define TTRC(m_value) (m_value)
 
 #endif
 

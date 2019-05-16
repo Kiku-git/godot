@@ -440,13 +440,13 @@ float AnimationNodeStateMachinePlayback::process(AnimationNodeStateMachine *sm, 
 
 		bool goto_next = false;
 
-		if (switch_mode == AnimationNodeStateMachineTransition::SWITCH_MODE_IMMEDIATE) {
-			goto_next = fading_from == StringName();
-		} else {
+		if (switch_mode == AnimationNodeStateMachineTransition::SWITCH_MODE_AT_END) {
 			goto_next = next_xfade >= (len_current - pos_current) || loops_current > 0;
 			if (loops_current > 0) {
 				next_xfade = 0;
 			}
+		} else {
+			goto_next = fading_from == StringName();
 		}
 
 		if (goto_next) { //loops should be used because fade time may be too small or zero and animation may have looped
@@ -960,7 +960,7 @@ void AnimationNodeStateMachine::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_end_node", "name"), &AnimationNodeStateMachine::set_end_node);
 	ClassDB::bind_method(D_METHOD("get_end_node"), &AnimationNodeStateMachine::get_end_node);
 
-	ClassDB::bind_method(D_METHOD("set_graph_offset", "name"), &AnimationNodeStateMachine::set_graph_offset);
+	ClassDB::bind_method(D_METHOD("set_graph_offset", "offset"), &AnimationNodeStateMachine::set_graph_offset);
 	ClassDB::bind_method(D_METHOD("get_graph_offset"), &AnimationNodeStateMachine::get_graph_offset);
 
 	ClassDB::bind_method(D_METHOD("_tree_changed"), &AnimationNodeStateMachine::_tree_changed);

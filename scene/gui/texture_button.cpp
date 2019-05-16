@@ -64,7 +64,7 @@ bool TextureButton::has_point(const Point2 &p_point) const {
 		Rect2 rect = Rect2();
 		Size2 mask_size = click_mask->get_size();
 
-		if (_position_rect.no_area()) {
+		if (_position_rect.has_no_area()) {
 			rect.size = mask_size;
 		} else if (_tile) {
 			// if the stretch mode is tile we offset the point to keep it inside the mask size
@@ -223,8 +223,7 @@ void TextureButton::_notification(int p_what) {
 			}
 			if (has_focus() && focused.is_valid()) {
 
-				Rect2 drect(Point2(), get_size());
-				draw_texture_rect(focused, drect, false);
+				draw_texture_rect(focused, _position_rect, false);
 			};
 		} break;
 	}

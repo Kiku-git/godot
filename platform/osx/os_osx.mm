@@ -102,8 +102,6 @@ static void push_to_key_event_buffer(const OS_OSX::KeyEvent &p_event) {
 
 static int mouse_x = 0;
 static int mouse_y = 0;
-static int prev_mouse_x = 0;
-static int prev_mouse_y = 0;
 static int button_mask = 0;
 static bool mouse_down_control = false;
 
@@ -273,6 +271,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)windowDidExitFullScreen:(NSNotification *)notification {
 	OS_OSX::singleton->zoomed = false;
+	if (!OS_OSX::singleton->resizable)
+		[OS_OSX::singleton->window_object setStyleMask:[OS_OSX::singleton->window_object styleMask] & ~NSWindowStyleMaskResizable];
 }
 
 - (void)windowDidChangeBackingProperties:(NSNotification *)notification {
@@ -337,6 +337,11 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 }
 
 - (void)windowDidMove:(NSNotification *)notification {
+
+	if (OS_OSX::singleton->get_main_loop()) {
+		OS_OSX::singleton->input->release_pressed_events();
+	}
+
 	/*
 	[window->nsgl.context update];
 
@@ -601,12 +606,13 @@ static void _mouseDownEvent(NSEvent *event, int index, int mask, bool pressed) {
 
 	Ref<InputEventMouseButton> mb;
 	mb.instance();
-
+	const CGFloat backingScaleFactor = [[event window] backingScaleFactor];
+	const Vector2 pos = get_mouse_pos([event locationInWindow], backingScaleFactor);
 	get_key_modifier_state([event modifierFlags], mb);
 	mb->set_button_index(index);
 	mb->set_pressed(pressed);
-	mb->set_position(Vector2(mouse_x, mouse_y));
-	mb->set_global_position(Vector2(mouse_x, mouse_y));
+	mb->set_position(pos);
+	mb->set_global_position(pos);
 	mb->set_button_mask(button_mask);
 	if (index == BUTTON_LEFT && pressed) {
 		mb->set_doubleclick([event clickCount] == 2);
@@ -642,8 +648,6 @@ static void _mouseDownEvent(NSEvent *event, int index, int mask, bool pressed) {
 	mm.instance();
 
 	mm->set_button_mask(button_mask);
-	prev_mouse_x = mouse_x;
-	prev_mouse_y = mouse_y;
 	const CGFloat backingScaleFactor = [[event window] backingScaleFactor];
 	const Vector2 pos = get_mouse_pos([event locationInWindow], backingScaleFactor);
 	mm->set_position(pos);
@@ -713,8 +717,6 @@ static void _mouseDownEvent(NSEvent *event, int index, int mask, bool pressed) {
 
 	if (OS_OSX::singleton->main_loop && OS_OSX::singleton->mouse_mode != OS::MOUSE_MODE_CAPTURED)
 		OS_OSX::singleton->main_loop->notification(MainLoop::NOTIFICATION_WM_MOUSE_EXIT);
-	if (OS_OSX::singleton->input)
-		OS_OSX::singleton->input->set_mouse_in_window(false);
 }
 
 - (void)mouseEntered:(NSEvent *)event {
@@ -722,8 +724,6 @@ static void _mouseDownEvent(NSEvent *event, int index, int mask, bool pressed) {
 		return;
 	if (OS_OSX::singleton->main_loop && OS_OSX::singleton->mouse_mode != OS::MOUSE_MODE_CAPTURED)
 		OS_OSX::singleton->main_loop->notification(MainLoop::NOTIFICATION_WM_MOUSE_ENTER);
-	if (OS_OSX::singleton->input)
-		OS_OSX::singleton->input->set_mouse_in_window(true);
 
 	OS::CursorShape p_shape = OS_OSX::singleton->cursor_shape;
 	OS_OSX::singleton->cursor_shape = OS::CURSOR_MAX;
@@ -765,9 +765,41 @@ static void _mouseDownEvent(NSEvent *event, int index, int mask, bool pressed) {
 	[super updateTrackingAreas];
 }
 
+static bool isNumpadKey(unsigned int key) {
+
+	static const unsigned int table[] = {
+		0x41, /* kVK_ANSI_KeypadDecimal */
+		0x43, /* kVK_ANSI_KeypadMultiply */
+		0x45, /* kVK_ANSI_KeypadPlus */
+		0x47, /* kVK_ANSI_KeypadClear */
+		0x4b, /* kVK_ANSI_KeypadDivide */
+		0x4c, /* kVK_ANSI_KeypadEnter */
+		0x4e, /* kVK_ANSI_KeypadMinus */
+		0x51, /* kVK_ANSI_KeypadEquals */
+		0x52, /* kVK_ANSI_Keypad0 */
+		0x53, /* kVK_ANSI_Keypad1 */
+		0x54, /* kVK_ANSI_Keypad2 */
+		0x55, /* kVK_ANSI_Keypad3 */
+		0x56, /* kVK_ANSI_Keypad4 */
+		0x57, /* kVK_ANSI_Keypad5 */
+		0x58, /* kVK_ANSI_Keypad6 */
+		0x59, /* kVK_ANSI_Keypad7 */
+		0x5b, /* kVK_ANSI_Keypad8 */
+		0x5c, /* kVK_ANSI_Keypad9 */
+		0x5f, /* kVK_JIS_KeypadComma */
+		0x00
+	};
+	for (int i = 0; table[i] != 0; i++) {
+		if (key == table[i])
+			return true;
+	}
+	return false;
+}
+
 // Translates a OS X keycode to a Godot keycode
 //
 static int translateKey(unsigned int key) {
+
 	// Keyboard symbol translation table
 	static const unsigned int table[128] = {
 		/* 00 */ KEY_A,
@@ -780,7 +812,7 @@ static int translateKey(unsigned int key) {
 		/* 07 */ KEY_X,
 		/* 08 */ KEY_C,
 		/* 09 */ KEY_V,
-		/* 0a */ KEY_UNKNOWN,
+		/* 0a */ KEY_SECTION, /* ISO Section */
 		/* 0b */ KEY_B,
 		/* 0c */ KEY_Q,
 		/* 0d */ KEY_W,
@@ -834,7 +866,7 @@ static int translateKey(unsigned int key) {
 		/* 3d */ KEY_ALT,
 		/* 3e */ KEY_CONTROL,
 		/* 3f */ KEY_UNKNOWN, /* Function */
-		/* 40 */ KEY_UNKNOWN,
+		/* 40 */ KEY_UNKNOWN, /* F17 */
 		/* 41 */ KEY_KP_PERIOD,
 		/* 42 */ KEY_UNKNOWN,
 		/* 43 */ KEY_KP_MULTIPLY,
@@ -842,16 +874,16 @@ static int translateKey(unsigned int key) {
 		/* 45 */ KEY_KP_ADD,
 		/* 46 */ KEY_UNKNOWN,
 		/* 47 */ KEY_NUMLOCK, /* Really KeypadClear... */
-		/* 48 */ KEY_UNKNOWN, /* VolumeUp */
-		/* 49 */ KEY_UNKNOWN, /* VolumeDown */
-		/* 4a */ KEY_UNKNOWN, /* Mute */
+		/* 48 */ KEY_VOLUMEUP, /* VolumeUp */
+		/* 49 */ KEY_VOLUMEDOWN, /* VolumeDown */
+		/* 4a */ KEY_VOLUMEMUTE, /* Mute */
 		/* 4b */ KEY_KP_DIVIDE,
 		/* 4c */ KEY_KP_ENTER,
 		/* 4d */ KEY_UNKNOWN,
 		/* 4e */ KEY_KP_SUBTRACT,
-		/* 4f */ KEY_UNKNOWN,
-		/* 50 */ KEY_UNKNOWN,
-		/* 51 */ KEY_EQUAL, //wtf equal?
+		/* 4f */ KEY_UNKNOWN, /* F18 */
+		/* 50 */ KEY_UNKNOWN, /* F19 */
+		/* 51 */ KEY_EQUAL, /* KeypadEqual */
 		/* 52 */ KEY_KP_0,
 		/* 53 */ KEY_KP_1,
 		/* 54 */ KEY_KP_2,
@@ -860,27 +892,27 @@ static int translateKey(unsigned int key) {
 		/* 57 */ KEY_KP_5,
 		/* 58 */ KEY_KP_6,
 		/* 59 */ KEY_KP_7,
-		/* 5a */ KEY_UNKNOWN,
+		/* 5a */ KEY_UNKNOWN, /* F20 */
 		/* 5b */ KEY_KP_8,
 		/* 5c */ KEY_KP_9,
-		/* 5d */ KEY_UNKNOWN,
-		/* 5e */ KEY_UNKNOWN,
-		/* 5f */ KEY_UNKNOWN,
+		/* 5d */ KEY_YEN, /* JIS Yen */
+		/* 5e */ KEY_UNDERSCORE, /* JIS Underscore */
+		/* 5f */ KEY_COMMA, /* JIS KeypadComma */
 		/* 60 */ KEY_F5,
 		/* 61 */ KEY_F6,
 		/* 62 */ KEY_F7,
 		/* 63 */ KEY_F3,
 		/* 64 */ KEY_F8,
 		/* 65 */ KEY_F9,
-		/* 66 */ KEY_UNKNOWN,
+		/* 66 */ KEY_UNKNOWN, /* JIS Eisu */
 		/* 67 */ KEY_F11,
-		/* 68 */ KEY_UNKNOWN,
+		/* 68 */ KEY_UNKNOWN, /* JIS Kana */
 		/* 69 */ KEY_F13,
 		/* 6a */ KEY_F16,
 		/* 6b */ KEY_F14,
 		/* 6c */ KEY_UNKNOWN,
 		/* 6d */ KEY_F10,
-		/* 6e */ KEY_UNKNOWN,
+		/* 6e */ KEY_MENU,
 		/* 6f */ KEY_F12,
 		/* 70 */ KEY_UNKNOWN,
 		/* 71 */ KEY_F15,
@@ -938,10 +970,10 @@ static const _KeyCodeMap _keycodes[55] = {
 	{ 'i', KEY_I },
 	{ 'o', KEY_O },
 	{ 'p', KEY_P },
-	{ '[', KEY_BRACERIGHT },
-	{ ']', KEY_BRACELEFT },
-	{ '{', KEY_BRACERIGHT },
-	{ '}', KEY_BRACELEFT },
+	{ '[', KEY_BRACELEFT },
+	{ ']', KEY_BRACERIGHT },
+	{ '{', KEY_BRACELEFT },
+	{ '}', KEY_BRACERIGHT },
 	{ 'a', KEY_A },
 	{ 's', KEY_S },
 	{ 'd', KEY_D },
@@ -970,6 +1002,9 @@ static const _KeyCodeMap _keycodes[55] = {
 };
 
 static int remapKey(unsigned int key) {
+
+	if (isNumpadKey(key))
+		return translateKey(key);
 
 	TISInputSourceRef currentKeyboard = TISCopyCurrentKeyboardInputSource();
 	if (!currentKeyboard)
@@ -1096,6 +1131,7 @@ static int remapKey(unsigned int key) {
 inline void sendScrollEvent(int button, double factor, int modifierFlags) {
 
 	unsigned int mask = 1 << (button - 1);
+	Vector2 mouse_pos = Vector2(mouse_x, mouse_y);
 
 	Ref<InputEventMouseButton> sc;
 	sc.instance();
@@ -1104,14 +1140,18 @@ inline void sendScrollEvent(int button, double factor, int modifierFlags) {
 	sc->set_button_index(button);
 	sc->set_factor(factor);
 	sc->set_pressed(true);
-	Vector2 mouse_pos = Vector2(mouse_x, mouse_y);
 	sc->set_position(mouse_pos);
 	sc->set_global_position(mouse_pos);
 	button_mask |= mask;
 	sc->set_button_mask(button_mask);
 	OS_OSX::singleton->push_input(sc);
 
+	sc.instance();
+	sc->set_button_index(button);
+	sc->set_factor(factor);
 	sc->set_pressed(false);
+	sc->set_position(mouse_pos);
+	sc->set_global_position(mouse_pos);
 	button_mask &= ~mask;
 	sc->set_button_mask(button_mask);
 	OS_OSX::singleton->push_input(sc);
@@ -1420,7 +1460,7 @@ Error OS_OSX::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 				RasterizerGLES3::make_current();
 				break;
 			} else {
-				if (GLOBAL_GET("rendering/quality/driver/driver_fallback") == "Best" || editor) {
+				if (GLOBAL_GET("rendering/quality/driver/fallback_to_gles2") || editor) {
 					p_video_driver = VIDEO_DRIVER_GLES2;
 					gles3 = false;
 					continue;
@@ -1655,6 +1695,11 @@ void OS_OSX::set_cursor_shape(CursorShape p_shape) {
 	}
 
 	cursor_shape = p_shape;
+}
+
+OS::CursorShape OS_OSX::get_cursor_shape() const {
+
+	return cursor_shape;
 }
 
 void OS_OSX::set_custom_mouse_cursor(const RES &p_cursor, CursorShape p_shape, const Vector2 &p_hotspot) {
@@ -2233,12 +2278,12 @@ Size2 OS_OSX::get_window_size() const {
 Size2 OS_OSX::get_real_window_size() const {
 
 	NSRect frame = [window_object frame];
-	return Size2(frame.size.width, frame.size.height);
+	return Size2(frame.size.width, frame.size.height) * _display_scale();
 }
 
 void OS_OSX::set_window_size(const Size2 p_size) {
 
-	Size2 size = p_size;
+	Size2 size = p_size / _display_scale();
 
 	if (get_borderless_window() == false) {
 		// NSRect used by setFrame includes the title bar, so add it to our size.y
@@ -2263,6 +2308,8 @@ void OS_OSX::set_window_fullscreen(bool p_enabled) {
 	if (zoomed != p_enabled) {
 		if (layered_window)
 			set_window_per_pixel_transparency_enabled(false);
+		if (!resizable)
+			[window_object setStyleMask:[window_object styleMask] | NSWindowStyleMaskResizable];
 		[window_object toggleFullScreen:nil];
 	}
 	zoomed = p_enabled;
@@ -2277,7 +2324,7 @@ void OS_OSX::set_window_resizable(bool p_enabled) {
 
 	if (p_enabled)
 		[window_object setStyleMask:[window_object styleMask] | NSWindowStyleMaskResizable];
-	else
+	else if (!zoomed)
 		[window_object setStyleMask:[window_object styleMask] & ~NSWindowStyleMaskResizable];
 
 	resizable = p_enabled;

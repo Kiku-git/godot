@@ -670,6 +670,7 @@ Dictionary AnimationPlayerEditor::get_state() const {
 	if (EditorNode::get_singleton()->get_edited_scene() && is_visible_in_tree() && player) {
 		d["player"] = EditorNode::get_singleton()->get_edited_scene()->get_path_to(player);
 		d["animation"] = player->get_assigned_animation();
+		d["track_editor_state"] = track_editor->get_state();
 	}
 
 	return d;
@@ -695,6 +696,10 @@ void AnimationPlayerEditor::set_state(const Dictionary &p_state) {
 				_select_anim_by_name(anim);
 				_animation_edit();
 			}
+		}
+
+		if (p_state.has("track_editor_state")) {
+			track_editor->set_state(p_state["track_editor_state"]);
 		}
 	}
 }
@@ -841,6 +846,12 @@ void AnimationPlayerEditor::_update_player() {
 	onion_skinning->set_disabled(player == NULL);
 	pin->set_disabled(player == NULL);
 
+	if (!player) {
+		AnimationPlayerEditor::singleton->get_track_editor()->update_keying();
+		EditorNode::get_singleton()->update_keying();
+		return;
+	}
+
 	int active_idx = -1;
 	for (List<StringName>::Element *E = animlist.front(); E; E = E->next()) {
 
@@ -851,12 +862,6 @@ void AnimationPlayerEditor::_update_player() {
 
 		if (player->get_assigned_animation() == E->get())
 			active_idx = animation->get_item_count() - 1;
-	}
-
-	if (!player) {
-		AnimationPlayerEditor::singleton->get_track_editor()->update_keying();
-		EditorNode::get_singleton()->update_keying();
-		return;
 	}
 
 	updating = false;

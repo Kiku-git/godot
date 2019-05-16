@@ -94,6 +94,8 @@ Error ResourceFormatImporter::_get_path_and_type(const String &p_path, PathAndTy
 				r_path_and_type.type = value;
 			} else if (assign == "importer") {
 				r_path_and_type.importer = value;
+			} else if (assign == "group_file") {
+				r_path_and_type.group_file = value;
 			} else if (assign == "metadata") {
 				r_path_and_type.metadata = value;
 			} else if (assign == "valid") {
@@ -181,6 +183,11 @@ void ResourceFormatImporter::get_recognized_extensions_for_type(const String &p_
 			}
 		}
 	}
+}
+
+bool ResourceFormatImporter::exists(const String &p_path) const {
+
+	return FileAccess::exists(p_path + ".import");
 }
 
 bool ResourceFormatImporter::recognize_path(const String &p_path, const String &p_for_type) const {
@@ -287,6 +294,15 @@ void ResourceFormatImporter::get_internal_resource_path_list(const String &p_pat
 		}
 	}
 	memdelete(f);
+}
+
+String ResourceFormatImporter::get_import_group_file(const String &p_path) const {
+
+	bool valid = true;
+	PathAndType pat;
+	_get_path_and_type(p_path, pat, &valid);
+	return valid?pat.group_file:String();
+
 }
 
 bool ResourceFormatImporter::is_import_valid(const String &p_path) const {

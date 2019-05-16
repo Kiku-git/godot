@@ -351,10 +351,8 @@ bool PhysicsDirectSpaceStateSW::collide_shape(RID p_shape, const Transform &p_sh
 	CollisionSolverSW::CallbackResult cbkres = NULL;
 
 	PhysicsServerSW::CollCbkData *cbkptr = NULL;
-	if (p_result_max > 0) {
-		cbkptr = &cbk;
-		cbkres = PhysicsServerSW::_shape_col_cbk;
-	}
+	cbkptr = &cbk;
+	cbkres = PhysicsServerSW::_shape_col_cbk;
 
 	for (int i = 0; i < amount; i++) {
 
@@ -632,7 +630,7 @@ int SpaceSW::test_body_ray_separation(BodySW *p_body, const Transform &p_transfo
 
 						int ray_index = -1; //reuse shape
 						for (int k = 0; k < rays_found; k++) {
-							if (r_results[ray_index].collision_local_shape == j) {
+							if (r_results[k].collision_local_shape == j) {
 								ray_index = k;
 							}
 						}

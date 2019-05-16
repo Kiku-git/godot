@@ -32,18 +32,21 @@ package org.godotengine.godot;
 
 //import android.R;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.content.pm.ConfigurationInfo;
+import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.graphics.Point;
 import android.graphics.Rect;
@@ -56,6 +59,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Messenger;
 import android.provider.Settings.Secure;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
@@ -71,7 +75,6 @@ import android.widget.FrameLayout;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-
 import com.google.android.vending.expansion.downloader.DownloadProgressInfo;
 import com.google.android.vending.expansion.downloader.DownloaderClientMarshaller;
 import com.google.android.vending.expansion.downloader.DownloaderServiceMarshaller;
@@ -79,10 +82,6 @@ import com.google.android.vending.expansion.downloader.Helpers;
 import com.google.android.vending.expansion.downloader.IDownloaderClient;
 import com.google.android.vending.expansion.downloader.IDownloaderService;
 import com.google.android.vending.expansion.downloader.IStub;
-
-import org.godotengine.godot.input.GodotEditText;
-import org.godotengine.godot.payments.PaymentsManager;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -92,12 +91,15 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
-
 import javax.microedition.khronos.opengles.GL10;
+import org.godotengine.godot.input.GodotEditText;
+import org.godotengine.godot.payments.PaymentsManager;
 
 public class Godot extends Activity implements SensorEventListener, IDownloaderClient {
 
 	static final int MAX_SINGLETONS = 64;
+	static final int REQUEST_RECORD_AUDIO_PERMISSION = 1;
+	static final int REQUEST_CAMERA_PERMISSION = 2;
 	private IStub mDownloaderClientStub;
 	private IDownloaderService mRemoteService;
 	private TextView mStatusText;
@@ -258,6 +260,10 @@ public class Godot extends Activity implements SensorEventListener, IDownloaderC
 		for (int i = 0; i < singleton_count; i++) {
 			singletons[i].onMainRequestPermissionsResult(requestCode, permissions, grantResults);
 		}
+
+		for (int i = 0; i < permissions.length; i++) {
+			GodotLib.requestPermissionResult(permissions[i], grantResults[i] == PackageManager.PERMISSION_GRANTED);
+		}
 	};
 
 	public void onVideoInit() {
@@ -316,6 +322,23 @@ public class Godot extends Activity implements SensorEventListener, IDownloaderC
 				}
 			}
 		});
+	}
+
+	public void restart() {
+		// HACK:
+		//
+		// Currently it's very hard to properly deinitialize Godot on Android to restart the game
+		// from scratch. Therefore, we need to kill the whole app process and relaunch it.
+		//
+		// Restarting only the activity, wouldn't be enough unless it did proper cleanup (including
+		// releasing and reloading native libs or resetting their state somehow and clearing statics).
+		//
+		// Using instrumentation is a way of making the whole app process restart, because Android
+		// will kill any process of the same package which was already running.
+		//
+		Bundle args = new Bundle();
+		args.putParcelable("intent", mCurrentIntent);
+		startInstrumentation(new ComponentName(Godot.this, GodotInstrumentation.class), null, args);
 	}
 
 	public void alert(final String message, final String title) {
@@ -403,7 +426,7 @@ public class Godot extends Activity implements SensorEventListener, IDownloaderC
 		}
 
 		io = new GodotIO(this);
-		io.unique_id = Secure.ANDROID_ID;
+		io.unique_id = Secure.getString(getContentResolver(), Secure.ANDROID_ID);
 		GodotLib.io = io;
 		mSensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
 		mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -415,7 +438,7 @@ public class Godot extends Activity implements SensorEventListener, IDownloaderC
 		mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 		mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_GAME);
 
-		GodotLib.initialize(this, io.needsReloadHooks(), getAssets(), use_apk_expansion);
+		GodotLib.initialize(this, getAssets(), use_apk_expansion);
 
 		result_callback = null;
 
@@ -580,6 +603,9 @@ public class Godot extends Activity implements SensorEventListener, IDownloaderC
 		for (int i = 0; i < singleton_count; i++) {
 			singletons[i].onMainDestroy();
 		}
+
+		GodotLib.ondestroy(this);
+
 		super.onDestroy();
 	}
 
@@ -918,13 +944,33 @@ public class Godot extends Activity implements SensorEventListener, IDownloaderC
 	}
 	*/
 
-	// Audio
+	public boolean requestPermission(String p_name) {
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+			// Not necessary, asked on install already
+			return true;
+		}
+
+		if (p_name.equals("RECORD_AUDIO")) {
+			if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+				requestPermissions(new String[] { Manifest.permission.RECORD_AUDIO }, REQUEST_RECORD_AUDIO_PERMISSION);
+				return false;
+			}
+		}
+
+		if (p_name.equals("CAMERA")) {
+			if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+				requestPermissions(new String[] { Manifest.permission.CAMERA }, REQUEST_CAMERA_PERMISSION);
+				return false;
+			}
+		}
+		return true;
+	}
 
 	/**
-     * The download state should trigger changes in the UI --- it may be useful
-     * to show the state as being indeterminate at times. This sample can be
-     * considered a guideline.
-     */
+	 * The download state should trigger changes in the UI --- it may be useful
+	 * to show the state as being indeterminate at times. This sample can be
+	 * considered a guideline.
+	 */
 	@Override
 	public void onDownloadStateChanged(int newState) {
 		setState(newState);
